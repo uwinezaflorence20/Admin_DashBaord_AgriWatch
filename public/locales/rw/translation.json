@@ -1,0 +1,156 @@
+{
+  "topbar": {
+    "email": "info@jmlustitia.com",
+    "phone": "+250 789647898 / +250 780398761",
+    "location": "Musanze, Kanyarukato Building ,1st Floor",
+    "location2": "Nyamirambo,Bazil Height Building ,1st Floor"
+  },
+  "nav": {
+    "home": "Ahabanza",
+    "about": "Abo turi bo",
+    "services": "Imirimo y'amategeko",
+    "activities": "Ibikorwa",
+    "team": "Abakozi bacu",
+    "awards": "Ibihembo",
+    "contact": "Twandikire",
+    "login": "Kwinjira",
+    "news": "Amakuru",
+    "careers": "Imyanya y'akazi"
+  },
+  "hero": {
+    "badge": "Sosiyete y'abanyamategeko mu Rwanda",
+    "title": "Ubutabera, Ubunyangamugayo, n'Ubunyamwuga",
+    "subtitle": "JM Lustitia Omnibus Chambers ni sosiyete y'abanyamategeko mu Rwanda itanga inama mu by'amategeko, kuburanira abantu, serivisi za noteri, amategeko y'ubucuruzi, n'umuryango mu mijyi ya Kigali na Musanze.",
+    "cta": "Saba Inama"
+  },
+  "services": {
+    "title": "Imirimo y'amategeko",
+    "subtitle": "Inzego z’amategeko zijyanye n’ibyo ukeneye, zigamije gutanga ubufasha n’ibisubizo byizewe kandi bikwiye ku bibazo byawe by’amategeko.",
+    "whatWeCover": "Ibyo dukurikirana",
+    "viewAll":"Reba inzego z’amategeko dukoramo",
+    "whyChooseUs": "Kuki wahitamo JM Lustitia Omnibus Chambers?",
+    "needService": "Ukeneye iyi serivisi?",
+    "inquireNow": "Twandikire ubu",
+    "scheduleConsultation": "Saba inama n’itsinda ryacu ry’inzobere mu mategeko kugira ngo muganire ku byo ukeneye byihariye, ubone ubujyanama bw’umwuga mu mategeko, kandi musuzume ibisubizo byiza bishoboka ku kibazo cyawe.",
+    "integrity": "Ubunyangamugayo mu kazi",
+    "expertise": "Ubumenyi bwimbitse mu gihugu no mu karere",
+    "confidentiality": "Kubungabunga amakuru y'abakiliya",
+   
+    "personalized": "Ingamba zihariye kuri buri mukiliya",
+    "success": "Intsinzi nyinshi mu manza",
+    "backToServices": "Subira ku Inzego z’Amategeko",
+    "process_title": "Uko dukora",
+    "process_step1_title": "Kugisha inama",
+    "process_step1_text": "Tubanza kumva neza ibyo mukeneye n'intego zanyu mu mategeko.",
+    "process_step2_title": "Ingamba",
+    "process_step2_text": "Inzobere zacu zitegura ingamba zihariye zishingiye ku kirego cyanyu.",
+    "process_step3_title": "Ishyirwa mu bikorwa",
+    "process_step3_text": "Tuguhagararira mu buryo bw’ubunyamwuga n’ubwitonzi buhanitse.",
+    "process_step4_title": "Intsinzi",
+    "process_step4_text": "Dukora uko dushoboye kugira ngo tugere ku ntsinzi ikubereye."
+  },
+  "contact": {
+    "title": "Twandikire",
+    "subTitle": "Turi hano kugira ngo tugufashe mu bibazo byawe byose by’amategeko. Twandikire ukoresheje imwe mu nzira ziri hasi aha.",
+    "name": "Amazina Yombi",
+    "email": "Imeri",
+    "message": "Ubutumwa",
+    "send": "Ohereza Ubutumwa",
+    "address": "Adresi",
+    "phone": "Telefoni",
+    "location": "Urugiro",
+    "yourMessage":"Andika ubutumwa burambuye hano ku bijyanye n'inama ushaka",
+    "subjectPlaceholder":"Inyito y'ubutumwa",
+    "emailPlaceholder":"info@gmail.com ",
+    "namePlaceholder":"Claude Harelimana",
+    "phonePlaceholder":"+250 78 2642 922",
+    "callus":"Duhamagare",
+    "emailus":"Twandikire",
+    "visitUs":"Tugane",
+    "workingHours":"Amasaha y'akazi",
+    " MondayFriday":"Ku wa mbere kugeza ku wa gatanu",
+    "Saturday":"Ku wa gatandatu",
+    "successText":"Urakoze kutwandikira, twakiriye ubutumwa bwawe kandi tuzagusubiza vuba."
+    
+  },
+  "chatbot": {
+    "welcome": "Muraho! Twabafasha iki uyu munsi?",
+    "prompt": "Baza ikibazo kijyanye n'amategeko...",
+    "disclaimer": "Uru rubuga rutanga amakuru rusange ku mategeko gusa, ntabwo rusimbura inama z'umunyamategeko w'inzobere.",
+    "legal_only": "Nshobora gufasha mu bibazo bijyanye n'amategeko gusa.",
+    "questions": {
+      "services": "Ni izihe serivisi mutanga?",
+      "contact": "Nabavugisha nte?",
+      "location": "Ibiro byanyu biherereye he?"
+    }
+  },
+  "publications":{
+    "title":"Ibyo twanditse"
+  },
+  "articles":{
+    "title":"Inyandiko",
+    "subTitle":"Komeza kumenya amakuru agezweho binyuze mu nyandiko zanditswe n’abahanga hamwe n’ubusesenguzi bw’amategeko butanga agaciro buvuye muri JM Iustitia Omnibus Chambers.",
+    "notfound":"Nta nyandiko zihari ubu."
+  },
+  "activity":{
+    "title":"Ibikorwa",
+    "subTitle":"JM Iustitia Omnibus Chambers itanga amakuru ku bikorwa byayo by’amategeko, ubufatanye n’abandi bafatanyabikorwa, n’imikoranire n’ibigo by’amategeko.",
+     "notfound":"Nta bikorwa  birimo ubu."
+
+  },
+  "news":{
+    "title":"Amakuru",
+    "subTitle":"Komeza kumenya amakuru mashya n’andi makuru agezweho ajyanye n’amategeko atangwa na JM Lustitia Omnibus Chambers.",
+    "notfound":"Nta makuru ahari ubu."
+
+   
+  },
+  "careers":{
+    "title":"Imyanya y'akazi",
+    "subTitle":"Sangira natwe mu rugendo rw'ubunyamwuga mu mategeko.",
+    "notfound":"Nta myanya y'akazi ihari ubu."
+  },
+  "team":{
+    "title":"Abakozi Bacu",
+    "subTitle":"Mumenye abahanga mu by’amategeko bari muri JM Iustitia Omnibus Chambers.",
+    "notfound":"Nta bakozi bahari ubu.",
+    "homeTitle":"Inzobere zacu mu Mategeko",
+    "homeDescription":"Menya itsinda ryacu ry’inzobere mu mategeko ryiyemeje gufasha abakiliya bacu kugera ku ntsinzi. Duhuza ubumenyi bwimbitse no kwita ku mukiliya ku buryo bwihariye.",
+    "meetTeam":"Menya Itsinda Ryacu",
+    "backToTeam":"Subira ku Itsinda Ryacu",
+    "moreAboutLawyer":"Menya byinshi kuri we"
+
+  },
+    "common":{
+    "readMore":"Soma birambuye",
+    "backToHome":"Subira Aho Usanzwe Utabona",
+    "writtenBy":"Yanditswe na"
+  },
+  "about":{
+    "home": "JM Lustitia Omnibus Chambers ni sosiyete y'abanyamategeko mu Rwanda itanga inama mu by'amategeko, kuburanira abantu, serivisi za noteri, amategeko y'ubucuruzi, ay'umuryango, n'ay'umutungo mu mijyi ya Kigali na Musanze. Itsinda ryacu ry’abanyamategeko bafite ubunararibonye ryiyemeje gufasha abakiliya bacu kugera ku musaruro mwiza ushoboka.",
+    "homeExcellenceYear":"Imyaka y’Ubunyamwuga",
+    "legacy":"Amateka Yacu",
+    "firstDesc1":"JM Lustitia Omnibus Chambers ni sosiyete y’abanyamategeko yiyemeje gutanga serivisi z’amategeko zuzuye kandi z’umwuga. Izina ryayo",
+    "firstDesc2":"rigaragaza ubushake budacogora bwo guharanira ubutabera, naho",
+    "firstDesc3":"rikagaragaza ubunararibonye n’ubumenyi bwagutse mu nzego zitandukanye z’amategeko.",
+    "secondDesc":"Twubakiye ku bunyangamugayo n’indashyikirwa, twavuye ku rwego ruto rw’umwuga tugera ku rwego rwizewe mu mategeko, dushingiye ku ntsinzi n’icyizere by’abakiliya bacu.",
+    "ourMission": "Ubutumwa bwacu ni ukutanga serivisi z'amategeko ziharanira ubunyangamugayo, ubunyamwuga, no kumva neza ibikenewe n'abakiliya bacu.",
+    "ourVision": "Icyo twifuza ni ukuba ikigo cy'amategeko cya mbere mu Rwanda, kizwi ku bw'ubwitange mu gushyigikira ubutabera n'ubushobozi bwo gutanga ibisubizo binoze.",
+    "ourValues": [
+      "Ubunyangamugayo",
+      "Ubunyamwuga",
+      "Kurinda amakuru y’abakiriya",
+      "Gukora neza cyane",
+      "Gushyira inyungu z’umukiriya imbere"
+    ],
+    "whyChooseUs":[
+      "Ubunyangamugayo mu kazi",
+      "Ubumenyi bwimbitse mu gihugu no mu karere",
+      "Ingamba zihariye kuri buri mukiliya",
+      "Intsinzi nyinshi mu manza"
+    ],
+    "moreabout":"Menya byinshi kuri twe",
+    "ourCommitment":"Ubwitange ku Butabera n’Umwuga"
+    
+  }
+}
