@@ -254,3 +254,39 @@ export const getModelMetrics = async () => {
 
 export const getConfusionMatrixUrl = () => `${MODEL_API_URL}/metrics/confusion-matrix`;
 export const getTrainingHistoryUrl = () => `${MODEL_API_URL}/metrics/training-history`;
+
+const AGRI_API = "https://agriwatch-backenf.onrender.com";
+
+export const getAllUsers = async (token) => {
+  const response = await fetch(`${AGRI_API}/user/allUsers`, {
+    method: "GET",
+    headers: {
+      accept: "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.message || "Failed to fetch users");
+  }
+
+  return response.json();
+};
+
+export const deleteUser = async (id, token) => {
+  const response = await fetch(`${AGRI_API}/user/deleteUser/${id}`, {
+    method: "DELETE",
+    headers: {
+      accept: "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.message || "Failed to delete user");
+  }
+
+  return response.json();
+};

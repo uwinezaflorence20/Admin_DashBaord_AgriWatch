@@ -2,10 +2,11 @@
 
 import { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { usePathname, useRouter } from 'next/navigation';
 import {
-  TbLayoutDashboard, TbUsers, TbActivity, TbSpeakerphone,
-  TbLogout, TbMenu2, TbX, TbUser, TbChevronDown, TbNews, TbBriefcase, TbChartHistogram
+  TbLayoutDashboard, TbUsers,
+  TbLogout, TbMenu2, TbX, TbUser, TbChevronDown, TbChartHistogram
 } from 'react-icons/tb';
 import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -21,8 +22,42 @@ export default function AdminLayout({ children }) {
   const dropdownRef = useRef(null);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const [authReady, setAuthReady] = useState(false);
 
-  // ... (useEffect and handleLogout same as before)
+  const isAuthPage =
+    pathname === '/admin/login' ||
+    pathname === '/login' ||
+    pathname === '/admin/forgot-password' ||
+    pathname.startsWith('/admin/reset-password');
+
+  // Auth guard — runs on every route change
+  useEffect(() => {
+    if (isAuthPage) return; // auth pages bypass the loading screen via early return below
+
+    const token = localStorage.getItem('token');
+    if (!token) {
+      router.replace('/admin/login');
+      return;
+    }
+
+    try {
+      const userData = JSON.parse(localStorage.getItem('user') || '{}');
+      if (userData.Role !== 'Admin') {
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        router.replace('/admin/login');
+        return;
+      }
+    } catch {
+      localStorage.removeItem('token');
+      router.replace('/admin/login');
+      return;
+    }
+
+    const t = setTimeout(() => setAuthReady(true), 0);
+    return () => clearTimeout(t);
+  }, [isAuthPage, router]);
+
   useEffect(() => {
     const handleOutside = (e) => {
       if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
@@ -52,13 +87,15 @@ export default function AdminLayout({ children }) {
     };
   }, []);
 
-  const isAuthPage =
-    pathname === '/admin/login' ||
-    pathname === '/login' ||
-    pathname === '/admin/forgot-password' ||
-    pathname.startsWith('/admin/reset-password');
-
   if (isAuthPage) return <>{children}</>;
+
+  if (!authReady) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-muted">
+        <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
 
   const handleLogout = async () => {
     try {
@@ -76,11 +113,7 @@ export default function AdminLayout({ children }) {
 
   const menuItems = [
     { name: 'Dashboard', href: '/admin/dashboard', icon: TbLayoutDashboard },
-    { name: 'Team Members', href: '/admin/team', icon: TbUsers },
-    { name: 'Activities', href: '/admin/activities', icon: TbActivity },
-    { name: 'News', href: '/admin/news', icon: TbSpeakerphone },
-    { name: 'Users framer', href: '/admin/articles', icon: TbNews },
-    { name: 'Job Postings', href: '/admin/jobs', icon: TbBriefcase },
+    { name: 'Users', href: '/admin/users', icon: TbUsers },
     { name: 'Model Performance', href: '/admin/model-performance', icon: TbChartHistogram },
     { name: 'Profile', href: '/admin/profile', icon: TbUser },
   ];
@@ -89,10 +122,13 @@ export default function AdminLayout({ children }) {
     <div className="min-h-screen bg-muted flex">
       {/* Desktop Sidebar */}
       <aside className="hidden lg:flex w-72 flex-col bg-primary text-white sticky top-0 h-screen shadow-2xl">
-        <div className="p-8 border-b border-white/5">
-          <Link href="/admin/dashboard" className="flex flex-col">
-            <span className="text-xl font-bold tracking-tighter text-white">AGRIWATCH</span>
-            <span className="text-[10px] font-medium tracking-[0.2em] text-accent uppercase -mt-1">AI Detection System</span>
+        <div className="p-6 border-b border-white/5">
+          <Link href="/admin/dashboard" className="flex items-center gap-3">
+            <Image src="/icon.png" alt="AgriWatch" width={38} height={38} className="rounded-xl" />
+            <div className="flex flex-col">
+              <span className="text-xl font-bold tracking-tighter text-white">AGRIWATCH</span>
+              <span className="text-[10px] font-medium tracking-[0.2em] text-white/60 uppercase -mt-0.5">AI Detection System</span>
+            </div>
           </Link>
         </div>
 
@@ -215,7 +251,10 @@ export default function AdminLayout({ children }) {
               className="fixed inset-y-0 left-0 w-72 bg-primary text-white z-[101] shadow-2xl lg:hidden flex flex-col"
             >
               <div className="p-6 flex items-center justify-between border-b border-white/5">
-                <span className="text-xl font-bold tracking-tighter">AGRIWATCH</span>
+                <div className="flex items-center gap-3">
+                  <Image src="/icon.png" alt="AgriWatch" width={34} height={34} className="rounded-xl" />
+                  <span className="text-xl font-bold tracking-tighter">AGRIWATCH</span>
+                </div>
                 <button onClick={() => setSidebarOpen(false)}>
                   <TbX size={24} />
                 </button>

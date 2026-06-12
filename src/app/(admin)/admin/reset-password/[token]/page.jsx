@@ -11,7 +11,6 @@ import { motion } from 'framer-motion';
 import Link from 'next/link';
 import { toast } from 'sonner';
 import { useRouter, useParams } from 'next/navigation';
-import { resetPassword as resetPasswordApi } from '@/lib/api';
 
 const resetPasswordSchema = z.object({
   password: z.string().min(1, 'Password is required').min(8, 'Password must be at least 8 characters long'),
@@ -44,11 +43,18 @@ export default function ResetPasswordPage() {
     }
     setIsLoading(true);
     try {
-      await resetPasswordApi(token, data.password);
+      const response = await fetch(
+        'https://agriwatch-backenf.onrender.com/auth/resetPassword',
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+          body: JSON.stringify({ token, Password: data.password }),
+        }
+      );
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.message || 'Failed to reset password');
       toast.success('Password updated successfully!');
-      setTimeout(() => {
-        router.push('/admin/login');
-      }, 2000);
+      setTimeout(() => router.push('/admin/login'), 2000);
     } catch (error) {
       toast.error(error.message || 'Failed to update password. Please try again.');
     } finally {
