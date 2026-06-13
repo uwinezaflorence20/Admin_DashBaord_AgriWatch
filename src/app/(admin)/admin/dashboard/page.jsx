@@ -9,6 +9,10 @@ import {
   TbLoader2,
   TbBrain,
   TbUser,
+  TbMail,
+  TbMapPin,
+  TbShieldCheck,
+  TbShieldOff,
 } from "react-icons/tb";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
@@ -23,17 +27,21 @@ import {
 } from "@/lib/api";
 
 import { toast } from "sonner";
+import { cn } from "@/lib/utils";
 
 export default function DashboardPage() {
   const router = useRouter();
 
   const [stats, setStats] = useState([
     { label: "Pending Inquiries", value: "...", icon: TbChecklist, color: "bg-orange-500" },
-    { label: "Total Users", value: "...", icon: TbUser, color: "bg-green-500" },
+    { label: "Total Users",       value: "...", icon: TbUser,      color: "bg-green-500"  },
+    { label: "Total Activities",  value: "...", icon: TbActivity,  color: "bg-blue-500"   },
+    { label: "Team Members",      value: "...", icon: TbUsers,     color: "bg-accent"      },
   ]);
 
   const [modelAccuracy, setModelAccuracy] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [users, setUsers] = useState([]);
 
   const fetchModelAccuracy = async () => {
     try {
@@ -47,7 +55,6 @@ export default function DashboardPage() {
   const fetchDashboardData = async () => {
     try {
       setLoading(true);
-
       const token = localStorage.getItem("token");
 
       const [activitiesResult, teamResult, contactResult, usersResult] =
@@ -66,9 +73,7 @@ export default function DashboardPage() {
           : [];
 
       const team =
-        teamResult.status === "fulfilled"
-          ? teamResult.value?.data || []
-          : [];
+        teamResult.status === "fulfilled" ? teamResult.value?.data || [] : [];
 
       const contactData =
         contactResult.status === "fulfilled"
@@ -76,35 +81,15 @@ export default function DashboardPage() {
           : [];
 
       const usersData =
-        usersResult.status === "fulfilled"
-          ? usersResult.value?.data || []
-          : [];
+        usersResult.status === "fulfilled" ? usersResult.value?.data || [] : [];
+
+      setUsers(usersData);
 
       setStats([
-        {
-          label: "Pending Inquiries",
-          value: contactData.length.toString(),
-          icon: TbChecklist,
-          color: "bg-orange-500",
-        },
-        {
-          label: "Total Users",
-          value: usersData.length.toString(),
-          icon: TbUser,
-          color: "bg-green-500",
-        },
-        {
-          label: "Total Activities",
-          value: activitiesData.length.toString(),
-          icon: TbActivity,
-          color: "bg-blue-500",
-        },
-        {
-          label: "Team Members",
-          value: team.length.toString(),
-          icon: TbUsers,
-          color: "bg-accent",
-        },
+        { label: "Pending Inquiries", value: contactData.length.toString(),   icon: TbChecklist, color: "bg-orange-500" },
+        { label: "Total Users",       value: usersData.length.toString(),      icon: TbUser,      color: "bg-green-500"  },
+        { label: "Total Activities",  value: activitiesData.length.toString(), icon: TbActivity,  color: "bg-blue-500"   },
+        { label: "Team Members",      value: team.length.toString(),           icon: TbUsers,     color: "bg-accent"      },
       ]);
     } catch (error) {
       console.error(error);
@@ -115,16 +100,15 @@ export default function DashboardPage() {
   };
 
   useEffect(() => {
-    fetchDashboardData();
-    fetchModelAccuracy();
+    const t = setTimeout(() => {
+      fetchDashboardData();
+      fetchModelAccuracy();
+    }, 0);
+    return () => clearTimeout(t);
   }, []);
 
   const modelAccuracyValue =
-    modelAccuracy === null
-      ? "..."
-      : modelAccuracy === "error"
-      ? "N/A"
-      : `${modelAccuracy}%`;
+    modelAccuracy === null ? "..." : modelAccuracy === "error" ? "N/A" : `${modelAccuracy}%`;
 
   const allStats = [
     ...stats,
@@ -137,20 +121,17 @@ export default function DashboardPage() {
     },
   ];
 
-  function cn(...inputs) {
-    return inputs.filter(Boolean).join(" ");
-  }
-
   return (
     <div className="space-y-8">
-      {/* Stats */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+
+      {/* Stats — 5 cards, 2 cols on mobile → 3 on md → 5 on xl */}
+      <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-4">
         {allStats.map((stat, idx) => (
           <motion.div
             key={idx}
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ delay: idx * 0.1 }}
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: idx * 0.08 }}
           >
             <Card
               onClick={stat.href ? () => router.push(stat.href) : undefined}
@@ -159,15 +140,15 @@ export default function DashboardPage() {
                 stat.href && "cursor-pointer"
               )}
             >
-              <CardHeader className="flex flex-row items-center gap-4 pb-2">
-                <div className={cn("p-4 rounded-full text-white", stat.color)}>
-                  <stat.icon size={20} />
+              <CardHeader className="flex flex-row items-center gap-3 pb-2 pt-4 px-4">
+                <div className={cn("p-3 rounded-full text-white shrink-0", stat.color)}>
+                  <stat.icon size={18} />
                 </div>
-                <div>
-                  <div className="text-xl font-bold text-primary">
+                <div className="min-w-0">
+                  <div className="text-xl font-bold text-primary leading-tight">
                     {stat.value}
                   </div>
-                  <CardTitle className="text-sm text-muted-foreground">
+                  <CardTitle className="text-xs text-muted-foreground font-medium leading-snug mt-0.5">
                     {stat.label}
                   </CardTitle>
                 </div>
@@ -177,25 +158,102 @@ export default function DashboardPage() {
         ))}
       </div>
 
-      {/* Contact Inquiries */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
-        <Card className="border-none shadow-sm bg-white">
-          <CardHeader>
-            <CardTitle>Contact Inquiries</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {loading ? (
-              <div className="flex justify-center py-10">
-                <TbLoader2 className="animate-spin" size={24} />
-              </div>
-            ) : (
-              <p className="text-sm text-muted-foreground">
-                Dashboard loaded successfully
-              </p>
-            )}
-          </CardContent>
-        </Card>
-      </div>
+      {/* Users overview */}
+      <Card className="border-none shadow-sm bg-white">
+        <CardHeader className="flex flex-row items-center justify-between pb-2">
+          <div>
+            <CardTitle className="text-base">Registered Users</CardTitle>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              Latest accounts from the AgriWatch platform
+            </p>
+          </div>
+          <button
+            onClick={() => router.push("/admin/users")}
+            className="text-xs font-semibold text-primary hover:underline underline-offset-2"
+          >
+            View all
+          </button>
+        </CardHeader>
+
+        <CardContent>
+          {loading ? (
+            <div className="flex justify-center py-10">
+              <TbLoader2 className="animate-spin text-primary" size={24} />
+            </div>
+          ) : users.length === 0 ? (
+            <div className="flex flex-col items-center py-10 text-muted-foreground gap-2">
+              <TbUsers size={32} className="opacity-30" />
+              <p className="text-sm">No users yet</p>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="text-left text-xs text-muted-foreground border-b border-border">
+                    <th className="pb-3 font-semibold pr-4">Name</th>
+                    <th className="pb-3 font-semibold pr-4">Email</th>
+                    <th className="pb-3 font-semibold pr-4">Role</th>
+                    <th className="pb-3 font-semibold pr-4">Location</th>
+                    <th className="pb-3 font-semibold">Status</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border">
+                  {users.slice(0, 5).map((user, i) => (
+                    <motion.tr
+                      key={user._id}
+                      initial={{ opacity: 0, y: 4 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: i * 0.05 }}
+                      className="hover:bg-muted/20 transition-colors"
+                    >
+                      <td className="py-3 pr-4 font-medium text-primary whitespace-nowrap">
+                        {user.FirstName} {user.LastName}
+                      </td>
+                      <td className="py-3 pr-4 text-muted-foreground">
+                        <span className="flex items-center gap-1">
+                          <TbMail size={13} />
+                          {user.Email}
+                        </span>
+                      </td>
+                      <td className="py-3 pr-4">
+                        <span
+                          className={cn(
+                            "px-2 py-0.5 rounded-full text-xs font-semibold",
+                            user.Role === "Admin"
+                              ? "bg-purple-100 text-purple-700"
+                              : "bg-green-100 text-green-700"
+                          )}
+                        >
+                          {user.Role}
+                        </span>
+                      </td>
+                      <td className="py-3 pr-4 text-muted-foreground whitespace-nowrap">
+                        {user.location?.district ? (
+                          <span className="flex items-center gap-1">
+                            <TbMapPin size={13} />
+                            {user.location.district}
+                          </span>
+                        ) : "—"}
+                      </td>
+                      <td className="py-3">
+                        {user.verified ? (
+                          <span className="flex items-center gap-1 text-xs font-semibold text-blue-600">
+                            <TbShieldCheck size={14} /> Verified
+                          </span>
+                        ) : (
+                          <span className="flex items-center gap-1 text-xs font-semibold text-orange-500">
+                            <TbShieldOff size={14} /> Unverified
+                          </span>
+                        )}
+                      </td>
+                    </motion.tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 }
