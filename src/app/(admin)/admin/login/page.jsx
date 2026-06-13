@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -28,6 +28,18 @@ export default function AdminLoginPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [apiError, setApiError] = useState("");
   const router = useRouter();
+
+  // Redirect already-authenticated admins away from login
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    if (!token) return;
+    try {
+      const user = JSON.parse(localStorage.getItem("user") || "{}");
+      if (user.Role === "Admin") router.replace("/admin/dashboard");
+    } catch {
+      // invalid stored data — let them log in normally
+    }
+  }, [router]);
 
   const {
     register,
@@ -77,7 +89,7 @@ export default function AdminLoginPage() {
 
       reset();
 
-      router.push("/admin/dashboard");
+      router.replace("/admin/dashboard");
     } catch (error) {
       setApiError(error.message || "Invalid credentials");
     } finally {

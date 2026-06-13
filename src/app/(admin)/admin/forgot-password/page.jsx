@@ -45,7 +45,7 @@ export default function ForgotPasswordPage() {
             Accept: 'application/json',
           },
           body: JSON.stringify({
-            Email: data.email, // IMPORTANT: backend expects "Email"
+            Email: data.email,
           }),
         }
       );

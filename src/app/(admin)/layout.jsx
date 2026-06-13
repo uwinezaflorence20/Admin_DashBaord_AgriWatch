@@ -102,8 +102,9 @@ export default function AdminLayout({ children }) {
       setIsLoggingOut(true);
       await logoutApi();
       localStorage.removeItem('token');
+      localStorage.removeItem('user');
       localStorage.removeItem('name');
-      router.push('/admin/login');
+      router.replace('/admin/login');
     } catch (error) {
       console.error('Logout failed:', error);
       setIsLoggingOut(false);
