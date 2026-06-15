@@ -76,14 +76,28 @@ export default function AdminLoginPage() {
         throw new Error(result.message || "Login failed");
       }
 
+      // Handle various token key names the API might return
+      const token =
+        result.token ||
+        result.accessToken ||
+        result.data?.token ||
+        result.data?.accessToken;
+
+      // Handle various user object locations the API might return
+      const user = result.user || result.data?.user || result.data;
+
+      if (!token) {
+        throw new Error("Login failed: no token received from server.");
+      }
+
       // Ensure only admins can access this portal
-      if (result.user?.Role !== "Admin") {
+      if (user?.Role !== "Admin") {
         throw new Error("Access denied. Admin account required.");
       }
 
       // Save token and user details
-      localStorage.setItem("token", result.token);
-      localStorage.setItem("user", JSON.stringify(result.user));
+      localStorage.setItem("token", token);
+      localStorage.setItem("user", JSON.stringify(user));
 
       toast.success("Logged in successfully!");
 

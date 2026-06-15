@@ -55,7 +55,8 @@ export default function DashboardPage() {
   const fetchDashboardData = async () => {
     try {
       setLoading(true);
-      const token = localStorage.getItem("token");
+      const raw = localStorage.getItem("token");
+      const token = raw && raw !== "undefined" ? raw : "";
 
       const [activitiesResult, teamResult, contactResult, usersResult] =
         await Promise.allSettled([

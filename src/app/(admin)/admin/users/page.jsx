@@ -50,7 +50,8 @@ export default function UsersPage() {
   const fetchUsers = async () => {
     try {
       setLoading(true);
-      const token = localStorage.getItem("token");
+      const raw = localStorage.getItem("token");
+      const token = raw && raw !== "undefined" ? raw : "";
       const res = await getAllUsers(token);
       setUsers(res.data || []);
     } catch (err) {
@@ -68,7 +69,8 @@ export default function UsersPage() {
   const executeDelete = async () => {
     try {
       setIsDeleting(true);
-      const token = localStorage.getItem("token");
+      const raw = localStorage.getItem("token");
+      const token = raw && raw !== "undefined" ? raw : "";
       await deleteUser(userToDelete._id, token);
       toast.success("User deleted successfully");
       setUsers((prev) => prev.filter((u) => u._id !== userToDelete._id));

@@ -258,7 +258,9 @@ export const getTrainingHistoryUrl = () => `${MODEL_API_URL}/metrics/training-hi
 const AGRI_API = "https://agriwatch-backenf.onrender.com";
 
 const agriCall = async (endpoint, options = {}) => {
-  const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
+  const rawToken = typeof window !== "undefined" ? localStorage.getItem("token") : null;
+  // Guard against accidentally stored "undefined" string
+  const token = rawToken && rawToken !== "undefined" && rawToken !== "null" ? rawToken : null;
   const isFormData = options.body instanceof FormData;
   const headers = {
     Accept: "application/json",
