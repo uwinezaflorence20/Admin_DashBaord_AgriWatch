@@ -10,15 +10,16 @@ import {
 } from 'react-icons/tb';
 import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
-import { logout as logoutApi } from '@/lib/api';
+import { logout as logoutApi, getMe } from '@/lib/api';
 
 export default function AdminLayout({ children }) {
   const pathname = usePathname();
   const router = useRouter();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
-  const [userName, setUserName] = useState('Admin User');
-  const [userInitials, setUserInitials] = useState('AD');
+  const [userName, setUserName] = useState('');
+  const [userEmail, setUserEmail] = useState('');
+  const [userInitials, setUserInitials] = useState('');
   const dropdownRef = useRef(null);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
@@ -66,24 +67,38 @@ export default function AdminLayout({ children }) {
     };
     document.addEventListener('mousedown', handleOutside);
 
-    // Fetch user details from local storage
-    const fetchUserDetails = () => {
-      const storedName = localStorage.getItem('name');
-      if (storedName) {
-        setUserName(storedName);
-        const initials = storedName.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
-        setUserInitials(initials || 'AD');
-      }
+    // Fetch admin info from API, fall back to localStorage
+    const loadAdminInfo = async () => {
+      // Immediate fallback from stored user object
+      try {
+        const stored = JSON.parse(localStorage.getItem('user') || '{}');
+        const fallbackName = `${stored.FirstName || ''} ${stored.LastName || ''}`.trim() || stored.name || '';
+        if (fallbackName) {
+          setUserName(fallbackName);
+          setUserEmail(stored.Email || stored.email || '');
+          setUserInitials(fallbackName.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase());
+        }
+      } catch {}
+
+      // Then fetch fresh data from API
+      try {
+        const res = await getMe();
+        const u = res?.data || res?.user || res;
+        const fullName = `${u.FirstName || ''} ${u.LastName || ''}`.trim();
+        if (fullName) {
+          setUserName(fullName);
+          setUserEmail(u.Email || '');
+          setUserInitials(fullName.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase());
+        }
+      } catch {}
     };
 
-    fetchUserDetails();
-    window.addEventListener('profileUpdated', fetchUserDetails);
-    window.addEventListener('storage', fetchUserDetails);
+    loadAdminInfo();
+    window.addEventListener('profileUpdated', loadAdminInfo);
 
     return () => {
       document.removeEventListener('mousedown', handleOutside);
-      window.removeEventListener('profileUpdated', fetchUserDetails);
-      window.removeEventListener('storage', fetchUserDetails);
+      window.removeEventListener('profileUpdated', loadAdminInfo);
     };
   }, []);
 
@@ -187,8 +202,8 @@ export default function AdminLayout({ children }) {
               className="flex items-center gap-2 hover:bg-muted/40 rounded-xl px-3 py-2 transition-all"
             >
               <div className="hidden md:flex flex-col items-end mr-1">
-                <span className="text-sm font-bold text-primary leading-none">{userName}</span>
-                <span className="text-[10px] text-muted-foreground uppercase font-bold tracking-widest mt-1">Super Admin</span>
+                <span className="text-sm font-bold text-primary leading-none">{userName || 'Admin'}</span>
+                <span className="text-[10px] text-muted-foreground font-medium mt-0.5 truncate max-w-40">{userEmail || 'Administrator'}</span>
               </div>
               <div className="w-10 h-10 lg:w-11 lg:h-11 bg-accent rounded-full border-2 border-white shadow-sm flex items-center justify-center">
                 <span className="text-white font-bold text-sm">{userInitials}</span>
