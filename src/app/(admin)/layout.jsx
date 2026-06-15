@@ -6,7 +6,7 @@ import Image from 'next/image';
 import { usePathname, useRouter } from 'next/navigation';
 import {
   TbLayoutDashboard, TbUsers,
-  TbLogout, TbMenu2, TbX, TbUser, TbChevronDown, TbChartHistogram, TbInbox
+  TbLogout, TbMenu2, TbX, TbUser, TbChevronDown, TbChartHistogram, TbInbox, TbLeaf
 } from 'react-icons/tb';
 import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -128,11 +128,12 @@ export default function AdminLayout({ children }) {
   };
 
   const menuItems = [
-    { name: 'Dashboard', href: '/admin/dashboard', icon: TbLayoutDashboard },
-    { name: 'Users', href: '/admin/users', icon: TbUsers },
-    { name: 'Contacts', href: '/admin/contacts', icon: TbInbox },
-    { name: 'Model Performance', href: '/admin/model-performance', icon: TbChartHistogram },
-    { name: 'Profile', href: '/admin/profile', icon: TbUser },
+    { name: 'Dashboard',        href: '/admin/dashboard',        icon: TbLayoutDashboard },
+    { name: 'Users',            href: '/admin/users',            icon: TbUsers           },
+    { name: 'Predictions',      href: '/admin/predictions',      icon: TbLeaf            },
+    { name: 'Contacts',         href: '/admin/contacts',         icon: TbInbox           },
+    { name: 'Model Performance',href: '/admin/model-performance',icon: TbChartHistogram  },
+    { name: 'Profile',          href: '/admin/profile',          icon: TbUser            },
   ];
 
   return (
