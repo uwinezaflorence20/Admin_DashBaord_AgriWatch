@@ -257,6 +257,21 @@ export const getTrainingHistoryUrl = () => `${MODEL_API_URL}/metrics/training-hi
 
 const AGRI_API = "https://agriwatch-backenf.onrender.com";
 
+const agriCall = async (endpoint, options = {}) => {
+  const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
+  const isFormData = options.body instanceof FormData;
+  const headers = {
+    Accept: "application/json",
+    ...(!isFormData ? { "Content-Type": "application/json" } : {}),
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    ...(options.headers || {}),
+  };
+  const response = await fetch(`${AGRI_API}${endpoint}`, { ...options, headers });
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(data.message || "Request failed");
+  return data;
+};
+
 export const getAllUsers = async (token) => {
   const response = await fetch(`${AGRI_API}/user/allUsers`, {
     method: "GET",
@@ -290,3 +305,28 @@ export const deleteUser = async (id, token) => {
 
   return response.json();
 };
+
+// User — profile & password
+export const getMe = () => agriCall("/user/getMe");
+export const changeUserPassword = (currentPassword, newPassword) =>
+  agriCall("/user/changePassword", {
+    method: "PUT",
+    body: JSON.stringify({ currentPassword, newPassword }),
+  });
+export const updateUserInfo = (data) =>
+  agriCall("/user/updateInfo", {
+    method: "PATCH",
+    body: JSON.stringify(data),
+  });
+
+// Contacts
+export const getAgriContacts = () => agriCall("/contact");
+
+// Predictions — admin
+export const getAllPredictions = () => agriCall("/predict/all-results");
+export const deleteAllPredictions = () =>
+  agriCall("/predict/delete-all-results", { method: "DELETE" });
+export const getDistrictStats = () => agriCall("/predict/district-stats");
+export const getTopDistricts = () => agriCall("/predict/top-districts");
+export const getDistrictBreakdown = (district) =>
+  agriCall(`/predict/district-breakdown/${encodeURIComponent(district)}`);
