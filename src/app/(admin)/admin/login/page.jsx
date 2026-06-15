@@ -29,17 +29,6 @@ export default function AdminLoginPage() {
   const [apiError, setApiError] = useState("");
   const router = useRouter();
 
-  // Redirect already-authenticated admins away from login
-  useEffect(() => {
-    const token = localStorage.getItem("token");
-    if (!token || token === "undefined" || token === "null") return;
-    try {
-      const user = JSON.parse(localStorage.getItem("user") || "{}");
-      if (user.Role === "Admin") router.replace("/admin/dashboard");
-    } catch {
-      // invalid stored data — let them log in normally
-    }
-  }, [router]);
 
   const {
     register,
@@ -116,7 +105,7 @@ export default function AdminLoginPage() {
       {/* Left Side */}
       <div className="hidden lg:block lg:w-1/2 relative bg-primary overflow-hidden">
         <div className="absolute inset-0 opacity-60 bg-[url('/Home.jpeg')] bg-cover bg-center" />
-        <div className="absolute inset-0 bg-gradient-to-br from-primary via-primary/40 to-transparent" />
+        <div className="absolute inset-0 bg-linear-to-br from-primary via-primary/40 to-transparent" />
       </div>
 
       {/* Right Side */}
