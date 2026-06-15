@@ -32,7 +32,7 @@ export default function AdminLoginPage() {
   // Redirect already-authenticated admins away from login
   useEffect(() => {
     const token = localStorage.getItem("token");
-    if (!token) return;
+    if (!token || token === "undefined" || token === "null") return;
     try {
       const user = JSON.parse(localStorage.getItem("user") || "{}");
       if (user.Role === "Admin") router.replace("/admin/dashboard");
