@@ -3,16 +3,8 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import {
-  TbActivity,
-  TbUsers,
-  TbChecklist,
-  TbLoader2,
-  TbBrain,
-  TbUser,
-  TbMail,
-  TbMapPin,
-  TbShieldCheck,
-  TbShieldOff,
+  TbUsers, TbChecklist, TbLoader2, TbBrain,
+  TbUser, TbMail, TbInbox, TbCalendar, TbPhone,
 } from "react-icons/tb";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
@@ -20,10 +12,10 @@ import { motion } from "framer-motion";
 
 import {
   getTeamMembers,
-  getContacts,
   getRecentActivities,
   getModelMetrics,
   getAllUsers,
+  getAgriContacts,
 } from "@/lib/api";
 
 import { toast } from "sonner";
@@ -33,15 +25,15 @@ export default function DashboardPage() {
   const router = useRouter();
 
   const [stats, setStats] = useState([
-    { label: "Pending Inquiries", value: "...", icon: TbChecklist, color: "bg-orange-500" },
-    { label: "Total Users",       value: "...", icon: TbUser,      color: "bg-green-500"  },
-    { label: "Total Activities",  value: "...", icon: TbActivity,  color: "bg-blue-500"   },
-    { label: "Team Members",      value: "...", icon: TbUsers,     color: "bg-accent"      },
+    { label: "Total Inquiries", value: "...", icon: TbChecklist, color: "bg-orange-500" },
+    { label: "Total Users",     value: "...", icon: TbUser,      color: "bg-green-500"  },
+    { label: "Total Activities",value: "...", icon: TbUsers,     color: "bg-blue-500"   },
+    { label: "Team Members",    value: "...", icon: TbUsers,     color: "bg-accent"     },
   ]);
 
   const [modelAccuracy, setModelAccuracy] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [users, setUsers] = useState([]);
+  const [inquiries, setInquiries] = useState([]);
 
   const fetchModelAccuracy = async () => {
     try {
@@ -58,11 +50,11 @@ export default function DashboardPage() {
       const raw = localStorage.getItem("token");
       const token = raw && raw !== "undefined" ? raw : "";
 
-      const [activitiesResult, teamResult, contactResult, usersResult] =
+      const [activitiesResult, teamResult, contactsResult, usersResult] =
         await Promise.allSettled([
           getRecentActivities(),
           getTeamMembers(),
-          getContacts(),
+          getAgriContacts(),
           getAllUsers(token),
         ]);
 
@@ -76,21 +68,22 @@ export default function DashboardPage() {
       const team =
         teamResult.status === "fulfilled" ? teamResult.value?.data || [] : [];
 
-      const contactData =
-        contactResult.status === "fulfilled"
-          ? contactResult.value?.data || contactResult.value || []
+      const contacts =
+        contactsResult.status === "fulfilled"
+          ? contactsResult.value?.data || contactsResult.value?.contacts ||
+            (Array.isArray(contactsResult.value) ? contactsResult.value : [])
           : [];
 
       const usersData =
         usersResult.status === "fulfilled" ? usersResult.value?.data || [] : [];
 
-      setUsers(usersData);
+      setInquiries(contacts);
 
       setStats([
-        { label: "Pending Inquiries", value: contactData.length.toString(),   icon: TbChecklist, color: "bg-orange-500" },
-        { label: "Total Users",       value: usersData.length.toString(),      icon: TbUser,      color: "bg-green-500"  },
-        { label: "Total Activities",  value: activitiesData.length.toString(), icon: TbActivity,  color: "bg-blue-500"   },
-        { label: "Team Members",      value: team.length.toString(),           icon: TbUsers,     color: "bg-accent"      },
+        { label: "Total Inquiries",  value: contacts.length.toString(),       icon: TbChecklist, color: "bg-orange-500" },
+        { label: "Total Users",      value: usersData.length.toString(),       icon: TbUser,      color: "bg-green-500"  },
+        { label: "Total Activities", value: activitiesData.length.toString(),  icon: TbUsers,     color: "bg-blue-500"   },
+        { label: "Team Members",     value: team.length.toString(),            icon: TbUsers,     color: "bg-accent"     },
       ]);
     } catch (error) {
       console.error(error);
@@ -125,7 +118,7 @@ export default function DashboardPage() {
   return (
     <div className="space-y-8">
 
-      {/* Stats — 5 cards, 2 cols on mobile → 3 on md → 5 on xl */}
+      {/* Stats — 5 cards */}
       <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-4">
         {allStats.map((stat, idx) => (
           <motion.div
@@ -159,17 +152,17 @@ export default function DashboardPage() {
         ))}
       </div>
 
-      {/* Users overview */}
+      {/* Farmer Inquiries */}
       <Card className="border-none shadow-sm bg-white">
         <CardHeader className="flex flex-row items-center justify-between pb-2">
           <div>
-            <CardTitle className="text-base">Registered Users</CardTitle>
+            <CardTitle className="text-base">Farmer Inquiries</CardTitle>
             <p className="text-xs text-muted-foreground mt-0.5">
-              Latest accounts from the AgriWatch platform
+              Latest contact messages from the AgriWatch platform
             </p>
           </div>
           <button
-            onClick={() => router.push("/admin/users")}
+            onClick={() => router.push("/admin/contacts")}
             className="text-xs font-semibold text-primary hover:underline underline-offset-2"
           >
             View all
@@ -181,10 +174,10 @@ export default function DashboardPage() {
             <div className="flex justify-center py-10">
               <TbLoader2 className="animate-spin text-primary" size={24} />
             </div>
-          ) : users.length === 0 ? (
+          ) : inquiries.length === 0 ? (
             <div className="flex flex-col items-center py-10 text-muted-foreground gap-2">
-              <TbUsers size={32} className="opacity-30" />
-              <p className="text-sm">No users yet</p>
+              <TbInbox size={32} className="opacity-30" />
+              <p className="text-sm">No inquiries yet</p>
             </div>
           ) : (
             <div className="overflow-x-auto">
@@ -193,59 +186,51 @@ export default function DashboardPage() {
                   <tr className="text-left text-xs text-muted-foreground border-b border-border">
                     <th className="pb-3 font-semibold pr-4">Name</th>
                     <th className="pb-3 font-semibold pr-4">Email</th>
-                    <th className="pb-3 font-semibold pr-4">Role</th>
-                    <th className="pb-3 font-semibold pr-4">Location</th>
-                    <th className="pb-3 font-semibold">Status</th>
+                    <th className="pb-3 font-semibold pr-4">Phone</th>
+                    <th className="pb-3 font-semibold pr-4">Message</th>
+                    <th className="pb-3 font-semibold">Date</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border">
-                  {users.slice(0, 5).map((user, i) => (
+                  {inquiries.slice(0, 5).map((item, i) => (
                     <motion.tr
-                      key={user._id}
+                      key={item._id || i}
                       initial={{ opacity: 0, y: 4 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: i * 0.05 }}
-                      className="hover:bg-muted/20 transition-colors"
+                      className="hover:bg-muted/20 transition-colors cursor-pointer"
+                      onClick={() => router.push("/admin/contacts")}
                     >
                       <td className="py-3 pr-4 font-medium text-primary whitespace-nowrap">
-                        {user.FirstName} {user.LastName}
+                        <span className="flex items-center gap-1.5">
+                          <TbUser size={14} className="text-muted-foreground shrink-0" />
+                          {item.name || "—"}
+                        </span>
                       </td>
                       <td className="py-3 pr-4 text-muted-foreground">
                         <span className="flex items-center gap-1">
                           <TbMail size={13} />
-                          {user.Email}
-                        </span>
-                      </td>
-                      <td className="py-3 pr-4">
-                        <span
-                          className={cn(
-                            "px-2 py-0.5 rounded-full text-xs font-semibold",
-                            user.Role === "Admin"
-                              ? "bg-purple-100 text-purple-700"
-                              : "bg-green-100 text-green-700"
-                          )}
-                        >
-                          {user.Role}
+                          {item.email || "—"}
                         </span>
                       </td>
                       <td className="py-3 pr-4 text-muted-foreground whitespace-nowrap">
-                        {user.location?.district ? (
-                          <span className="flex items-center gap-1">
-                            <TbMapPin size={13} />
-                            {user.location.district}
-                          </span>
-                        ) : "—"}
+                        <span className="flex items-center gap-1">
+                          <TbPhone size={13} />
+                          {item.phone || item.phoneNumber || "—"}
+                        </span>
                       </td>
-                      <td className="py-3">
-                        {user.verified ? (
-                          <span className="flex items-center gap-1 text-xs font-semibold text-blue-600">
-                            <TbShieldCheck size={14} /> Verified
-                          </span>
-                        ) : (
-                          <span className="flex items-center gap-1 text-xs font-semibold text-orange-500">
-                            <TbShieldOff size={14} /> Unverified
-                          </span>
-                        )}
+                      <td className="py-3 pr-4 text-muted-foreground max-w-xs truncate">
+                        {item.message || "—"}
+                      </td>
+                      <td className="py-3 text-muted-foreground whitespace-nowrap">
+                        <span className="flex items-center gap-1">
+                          <TbCalendar size={13} />
+                          {item.createdAt
+                            ? new Date(item.createdAt).toLocaleDateString("en-GB", {
+                                day: "2-digit", month: "short", year: "numeric",
+                              })
+                            : "—"}
+                        </span>
                       </td>
                     </motion.tr>
                   ))}
