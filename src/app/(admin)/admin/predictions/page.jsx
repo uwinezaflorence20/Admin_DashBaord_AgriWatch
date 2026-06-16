@@ -127,24 +127,27 @@ export default function PredictionsPage() {
 
   const totalCases = districtStats.reduce((s, d) => s + (d.totalCases || 0), 0);
   const maxCases = Math.max(...districtStats.map((d) => d.totalCases || 0), 1);
+  const lateBlightCount = predictions.filter((p) => p.isLateBlight).length;
+  const healthyCount = predictions.filter((p) => !p.isLateBlight).length;
 
   const filteredPreds = predictions.filter((p) => {
     const q = search.toLowerCase();
-    const disease = formatDisease(p.disease || p.result || p.prediction || "").toLowerCase();
-    const district = (p.district || p.userId?.location?.district || "").toLowerCase();
-    const farmer = `${p.userId?.FirstName || p.userId?.firstName || ""} ${p.userId?.LastName || p.userId?.lastName || ""}`.toLowerCase();
-    return disease.includes(q) || district.includes(q) || farmer.includes(q);
+    const result = (p.data?.result?.en || "").toLowerCase();
+    const district = (p.location?.district || "").toLowerCase();
+    const sector = (p.location?.sector || "").toLowerCase();
+    return result.includes(q) || district.includes(q) || sector.includes(q);
   });
 
   return (
     <div className="space-y-6">
 
       {/* Summary Stats */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
         {[
-          { label: "Total Late Blight Cases", value: loading ? "..." : totalCases, icon: TbLeaf, color: "bg-red-500" },
-          { label: "Districts Affected",       value: loading ? "..." : districtStats.length, icon: TbMapPin, color: "bg-primary" },
-          { label: "Total Scan Records",       value: loading ? "..." : predictions.length, icon: TbChartBar, color: "bg-blue-500" },
+          { label: "Total Scans",        value: loading ? "..." : predictions.length, icon: TbChartBar,    color: "bg-blue-500"  },
+          { label: "Late Blight",        value: loading ? "..." : lateBlightCount,    icon: TbAlertCircle, color: "bg-red-500"   },
+          { label: "Healthy",            value: loading ? "..." : healthyCount,        icon: TbLeaf,        color: "bg-green-500" },
+          { label: "Districts Affected", value: loading ? "..." : districtStats.length,icon: TbMapPin,      color: "bg-primary"   },
         ].map((s, i) => (
           <motion.div key={i} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.08 }}>
             <Card className="border-none shadow-sm bg-white">
@@ -293,7 +296,7 @@ export default function PredictionsPage() {
                 <input
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
-                  placeholder="Search disease, district, farmer..."
+                  placeholder="Search result, district, sector..."
                   className="pl-8 pr-3 py-2 text-sm border border-border rounded-lg bg-muted/30 focus:outline-none focus:ring-2 focus:ring-accent/40 w-56"
                 />
               </div>
@@ -310,20 +313,23 @@ export default function PredictionsPage() {
               <table className="w-full text-sm">
                 <thead>
                   <tr className="text-left text-xs text-muted-foreground border-b border-border">
-                    <th className="pb-3 pr-4 font-semibold">Disease</th>
+                    <th className="pb-3 pr-4 font-semibold">Image</th>
+                    <th className="pb-3 pr-4 font-semibold">Result</th>
                     <th className="pb-3 pr-4 font-semibold">Confidence</th>
-                    <th className="pb-3 pr-4 font-semibold">Farmer</th>
-                    <th className="pb-3 pr-4 font-semibold">District</th>
+                    <th className="pb-3 pr-4 font-semibold">Severity</th>
+                    <th className="pb-3 pr-4 font-semibold">Location</th>
                     <th className="pb-3 font-semibold">Date</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border">
                   <AnimatePresence>
                     {filteredPreds.map((p, i) => {
-                      const disease = p.disease || p.result || p.prediction || p.label || "";
-                      const confidence = p.confidence || p.Confidence || p.probability || p.score;
-                      const farmer = `${p.userId?.FirstName || p.userId?.firstName || ""}  ${p.userId?.LastName || p.userId?.lastName || ""}`.trim();
-                      const district = p.district || p.District || p.userId?.location?.district || "";
+                      const result = p.data?.result?.en || "Unknown";
+                      const severity = p.data?.severity?.en || "—";
+                      const percentage = p.data?.percentage || "—";
+                      const isLateBlight = p.isLateBlight;
+                      const district = p.location?.district || "—";
+                      const sector = p.location?.sector || "";
                       return (
                         <motion.tr
                           key={p._id || i}
@@ -333,16 +339,34 @@ export default function PredictionsPage() {
                           className="hover:bg-muted/20"
                         >
                           <td className="py-3 pr-4">
-                            <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${diseaseBadgeColor(disease)}`}>
-                              {formatDisease(disease) || "Unknown"}
+                            {p.image?.url ? (
+                              <img
+                                src={p.image.url}
+                                alt="scan"
+                                className="w-10 h-10 rounded-lg object-cover border border-border"
+                              />
+                            ) : (
+                              <div className="w-10 h-10 rounded-lg bg-muted flex items-center justify-center">
+                                <TbLeaf size={16} className="text-muted-foreground" />
+                              </div>
+                            )}
+                          </td>
+                          <td className="py-3 pr-4">
+                            <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${isLateBlight ? "bg-red-100 text-red-700" : "bg-green-100 text-green-700"}`}>
+                              {isLateBlight ? "Late Blight" : "Healthy"}
+                            </span>
+                          </td>
+                          <td className="py-3 pr-4 text-muted-foreground font-medium">{percentage}</td>
+                          <td className="py-3 pr-4">
+                            <span className={`text-xs font-semibold ${isLateBlight ? "text-red-600" : "text-green-600"}`}>
+                              {severity}
                             </span>
                           </td>
                           <td className="py-3 pr-4 text-muted-foreground">
-                            {confidence != null ? `${Number(confidence).toFixed(1)}%` : "—"}
-                          </td>
-                          <td className="py-3 pr-4 font-medium text-primary">{farmer || "—"}</td>
-                          <td className="py-3 pr-4 text-muted-foreground">
-                            <span className="flex items-center gap-1"><TbMapPin size={13} />{district || "—"}</span>
+                            <span className="flex items-center gap-1">
+                              <TbMapPin size={13} />
+                              <span>{district}{sector ? `, ${sector}` : ""}</span>
+                            </span>
                           </td>
                           <td className="py-3 text-muted-foreground whitespace-nowrap">
                             <span className="flex items-center gap-1">
