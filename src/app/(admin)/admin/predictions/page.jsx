@@ -44,6 +44,11 @@ export default function PredictionsPage() {
   const [showDeleteAll, setShowDeleteAll] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
 
+  // District breakdown drill-down
+  const [breakdown, setBreakdown] = useState(null);
+  const [breakdownDistrict, setBreakdownDistrict] = useState("");
+  const [breakdownLoading, setBreakdownLoading] = useState(false);
+
   useEffect(() => { fetchAll(); }, []);
 
   const fetchAll = async () => {
@@ -74,6 +79,21 @@ export default function PredictionsPage() {
       console.error("all-results:", predsRes.reason?.message);
     }
     setLoading(false);
+  };
+
+  const openBreakdown = async (district) => {
+    setBreakdownDistrict(district);
+    setBreakdown(null);
+    setBreakdownLoading(true);
+    try {
+      const res = await agriGet(`/predict/district-breakdown/${encodeURIComponent(district)}`);
+      setBreakdown(res.data || []);
+    } catch (e) {
+      toast.error(`Failed to load breakdown for ${district}`);
+      setBreakdown([]);
+    } finally {
+      setBreakdownLoading(false);
+    }
   };
 
   const handleDeleteAll = async () => {
@@ -156,14 +176,18 @@ export default function PredictionsPage() {
                   initial={{ opacity: 0, x: -10 }}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ delay: i * 0.06 }}
-                  className="p-4 rounded-xl border border-border hover:bg-muted/20 transition-colors"
+                  onClick={() => openBreakdown(d.district)}
+                  className="p-4 rounded-xl border border-border hover:bg-muted/20 hover:border-primary/30 transition-all cursor-pointer group"
                 >
                   <div className="flex items-center justify-between mb-2">
                     <div>
-                      <span className="font-semibold text-primary">{d.district}</span>
+                      <span className="font-semibold text-primary group-hover:underline underline-offset-2">{d.district}</span>
                       <span className="text-xs text-muted-foreground ml-2">({d.province})</span>
                     </div>
-                    <span className="text-sm font-bold text-red-500">{d.totalCases} case{d.totalCases !== 1 ? "s" : ""}</span>
+                    <div className="flex items-center gap-3">
+                      <span className="text-sm font-bold text-red-500">{d.totalCases} case{d.totalCases !== 1 ? "s" : ""}</span>
+                      <span className="text-xs text-primary/60 font-medium group-hover:text-primary transition-colors">View breakdown →</span>
+                    </div>
                   </div>
                   <div className="w-full bg-muted rounded-full h-2 mb-2">
                     <div
@@ -263,6 +287,77 @@ export default function PredictionsPage() {
           </CardContent>
         </Card>
       )}
+
+      {/* District Breakdown Modal */}
+      <AnimatePresence>
+        {breakdownDistrict && (
+          <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-120 flex items-center justify-center p-4">
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="bg-white rounded-2xl shadow-2xl w-full max-w-lg p-6"
+            >
+              <div className="flex items-center justify-between mb-5">
+                <div>
+                  <h3 className="text-lg font-bold text-primary">Sector Breakdown</h3>
+                  <p className="text-sm text-muted-foreground">{breakdownDistrict} District</p>
+                </div>
+                <button
+                  onClick={() => { setBreakdownDistrict(""); setBreakdown(null); }}
+                  className="text-muted-foreground hover:text-primary transition-colors text-xl leading-none"
+                >✕</button>
+              </div>
+
+              {breakdownLoading ? (
+                <div className="flex justify-center py-10"><TbLoader2 className="animate-spin text-primary" size={26} /></div>
+              ) : breakdown?.length === 0 ? (
+                <p className="text-sm text-muted-foreground text-center py-8">No breakdown data for this district</p>
+              ) : (
+                <div className="space-y-3 max-h-96 overflow-y-auto pr-1">
+                  {breakdown?.map((s, i) => {
+                    const maxSector = Math.max(...(breakdown.map(b => b.totalCases || 0)), 1);
+                    return (
+                      <motion.div
+                        key={i}
+                        initial={{ opacity: 0, y: 6 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: i * 0.05 }}
+                        className="p-3 rounded-xl border border-border"
+                      >
+                        <div className="flex items-center justify-between mb-1.5">
+                          <span className="font-semibold text-primary text-sm">{s.sector}</span>
+                          <span className="text-xs font-bold text-red-500">{s.totalCases} case{s.totalCases !== 1 ? "s" : ""}</span>
+                        </div>
+                        <div className="w-full bg-muted rounded-full h-1.5 mb-2">
+                          <div
+                            className="bg-red-500 h-1.5 rounded-full"
+                            style={{ width: `${Math.min(100, (s.totalCases / maxSector) * 100)}%` }}
+                          />
+                        </div>
+                        {s.cells?.length > 0 && (
+                          <div className="flex flex-wrap gap-1">
+                            {s.cells.map((c, j) => (
+                              <span key={j} className="px-2 py-0.5 bg-muted text-muted-foreground text-xs rounded-full">{c}</span>
+                            ))}
+                          </div>
+                        )}
+                      </motion.div>
+                    );
+                  })}
+                </div>
+              )}
+
+              <button
+                onClick={() => { setBreakdownDistrict(""); setBreakdown(null); }}
+                className="mt-5 w-full py-2.5 bg-primary text-white rounded-xl font-semibold hover:bg-primary/90 transition-colors"
+              >
+                Close
+              </button>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
 
       {/* Delete All Modal */}
       <AnimatePresence>
