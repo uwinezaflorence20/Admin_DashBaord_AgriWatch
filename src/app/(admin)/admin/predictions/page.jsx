@@ -44,25 +44,49 @@ export default function PredictionsPage() {
 
   const fetchAll = async () => {
     setLoading(true);
-    const [predsResult, topResult, statsResult] = await Promise.allSettled([
-      getAllPredictions(),
-      getTopDistricts(),
-      getDistrictStats(),
+
+    // Try alternative path prefixes in case the backend uses /api prefix
+    const tryFetch = async (paths) => {
+      for (const path of paths) {
+        try {
+          const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
+          const validToken = token && token !== "undefined" && token !== "null" ? token : null;
+          const res = await fetch(`https://agriwatch-backenf.onrender.com${path}`, {
+            headers: {
+              Accept: "application/json",
+              "Content-Type": "application/json",
+              ...(validToken ? { Authorization: `Bearer ${validToken}` } : {}),
+            },
+          });
+          console.log(`[predictions] ${path} → ${res.status}`);
+          if (res.ok) {
+            const data = await res.json();
+            console.log(`[predictions] ${path} data:`, data);
+            return data;
+          }
+        } catch (e) {
+          console.log(`[predictions] ${path} error:`, e.message);
+        }
+      }
+      return null;
+    };
+
+    const [predsRaw, topRaw, statsRaw] = await Promise.all([
+      tryFetch(["/predict/all-results", "/api/predict/all-results", "/predictions/all-results", "/api/predictions/all-results"]),
+      tryFetch(["/predict/top-districts", "/api/predict/top-districts", "/predictions/top-districts"]),
+      tryFetch(["/predict/district-stats", "/api/predict/district-stats", "/predictions/district-stats"]),
     ]);
 
-    if (predsResult.status === "fulfilled") {
-      const raw = predsResult.value;
-      console.log("RAW predictions response:", JSON.stringify(raw, null, 2));
-      const list = raw?.data || raw?.results || raw?.predictions || (Array.isArray(raw) ? raw : []);
-      if (list.length > 0) console.log("First prediction record keys:", Object.keys(list[0]));
+    if (predsRaw) {
+      const list = predsRaw?.data || predsRaw?.results || predsRaw?.predictions || (Array.isArray(predsRaw) ? predsRaw : []);
+      if (list.length > 0) console.log("First prediction record:", list[0]);
       setPredictions(list);
     }
-    if (topResult.status === "fulfilled") {
-      const d = topResult.value;
-      setTopDistricts(d?.data || d?.districts || []);
+    if (topRaw) {
+      setTopDistricts(topRaw?.data || topRaw?.districts || (Array.isArray(topRaw) ? topRaw : []));
     }
-    if (statsResult.status === "fulfilled") {
-      setDistrictStats(statsResult.value?.data || statsResult.value || []);
+    if (statsRaw) {
+      setDistrictStats(statsRaw?.data || (Array.isArray(statsRaw) ? statsRaw : []));
     }
     setLoading(false);
   };
@@ -129,7 +153,7 @@ export default function PredictionsPage() {
                   <s.icon size={20} />
                 </div>
                 <div>
-                  <div className="text-xl font-bold text-primary truncate max-w-[160px]">{s.value}</div>
+                  <div className="text-xl font-bold text-primary truncate max-w-40">{s.value}</div>
                   <CardTitle className="text-sm text-muted-foreground">{s.label}</CardTitle>
                 </div>
               </CardHeader>
@@ -256,7 +280,7 @@ export default function PredictionsPage() {
       {/* Delete All Modal */}
       <AnimatePresence>
         {showDeleteAll && (
-          <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[120] flex items-center justify-center p-4">
+          <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-120 flex items-center justify-center p-4">
             <motion.div
               initial={{ scale: 0.9, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
