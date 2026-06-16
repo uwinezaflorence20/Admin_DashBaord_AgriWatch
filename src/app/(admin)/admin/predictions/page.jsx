@@ -4,25 +4,31 @@ import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   TbLoader2, TbSearch, TbTrash, TbAlertCircle, TbLeaf,
-  TbMapPin, TbCalendar, TbChartBar, TbX,
+  TbMapPin, TbCalendar, TbChartBar, TbBuildingCommunity,
 } from "react-icons/tb";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
-import { getAllPredictions, deleteAllPredictions, getTopDistricts, getDistrictStats } from "@/lib/api";
 import { toast } from "sonner";
 
-const getField = (p, ...keys) => {
-  for (const k of keys) {
-    const val = k.split(".").reduce((o, part) => o?.[part], p);
-    if (val !== undefined && val !== null && val !== "") return val;
-  }
-  return null;
+const AGRI_API = "https://agriwatch-backenf.onrender.com";
+
+const agriGet = async (path) => {
+  const raw = typeof window !== "undefined" ? localStorage.getItem("token") : null;
+  const token = raw && raw !== "undefined" && raw !== "null" ? raw : null;
+  const res = await fetch(`${AGRI_API}${path}`, {
+    headers: {
+      Accept: "application/json",
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+  });
+  if (!res.ok) throw new Error(`${path} → ${res.status}`);
+  return res.json();
 };
 
 const formatDisease = (name = "") =>
-  name.replace(/^Potato___/, "").replace(/___/g, " - ").replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+  name.replace(/^Potato___/, "").replace(/___/g, " – ").replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
 
 const diseaseBadgeColor = (name = "") => {
-  const n = name.toLowerCase();
+  const n = (name || "").toLowerCase();
   if (n.includes("healthy")) return "bg-green-100 text-green-700";
   if (n.includes("late")) return "bg-red-100 text-red-700";
   if (n.includes("early")) return "bg-orange-100 text-orange-700";
@@ -30,63 +36,42 @@ const diseaseBadgeColor = (name = "") => {
 };
 
 export default function PredictionsPage() {
-  const [predictions, setPredictions] = useState([]);
-  const [topDistricts, setTopDistricts] = useState([]);
   const [districtStats, setDistrictStats] = useState([]);
+  const [topDistricts, setTopDistricts] = useState([]);
+  const [predictions, setPredictions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [showDeleteAll, setShowDeleteAll] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
 
-  useEffect(() => {
-    fetchAll();
-  }, []);
+  useEffect(() => { fetchAll(); }, []);
 
   const fetchAll = async () => {
     setLoading(true);
-
-    // Try alternative path prefixes in case the backend uses /api prefix
-    const tryFetch = async (paths) => {
-      for (const path of paths) {
-        try {
-          const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
-          const validToken = token && token !== "undefined" && token !== "null" ? token : null;
-          const res = await fetch(`https://agriwatch-backenf.onrender.com${path}`, {
-            headers: {
-              Accept: "application/json",
-              "Content-Type": "application/json",
-              ...(validToken ? { Authorization: `Bearer ${validToken}` } : {}),
-            },
-          });
-          console.log(`[predictions] ${path} → ${res.status}`);
-          if (res.ok) {
-            const data = await res.json();
-            console.log(`[predictions] ${path} data:`, data);
-            return data;
-          }
-        } catch (e) {
-          console.log(`[predictions] ${path} error:`, e.message);
-        }
-      }
-      return null;
-    };
-
-    const [predsRaw, topRaw, statsRaw] = await Promise.all([
-      tryFetch(["/predict/all-results", "/api/predict/all-results", "/predictions/all-results", "/api/predictions/all-results"]),
-      tryFetch(["/predict/top-districts", "/api/predict/top-districts", "/predictions/top-districts"]),
-      tryFetch(["/predict/district-stats", "/api/predict/district-stats", "/predictions/district-stats"]),
+    const [statsRes, topRes, predsRes] = await Promise.allSettled([
+      agriGet("/predict/district-stats"),
+      agriGet("/predict/top-districts"),
+      agriGet("/predict/all-results"),
     ]);
 
-    if (predsRaw) {
-      const list = predsRaw?.data || predsRaw?.results || predsRaw?.predictions || (Array.isArray(predsRaw) ? predsRaw : []);
-      if (list.length > 0) console.log("First prediction record:", list[0]);
+    if (statsRes.status === "fulfilled") {
+      setDistrictStats(statsRes.value?.data || []);
+    } else {
+      console.error("district-stats:", statsRes.reason?.message);
+    }
+    if (topRes.status === "fulfilled") {
+      const d = topRes.value;
+      setTopDistricts(d?.data || d?.districts || (Array.isArray(d) ? d : []));
+    } else {
+      console.error("top-districts:", topRes.reason?.message);
+    }
+    if (predsRes.status === "fulfilled") {
+      const d = predsRes.value;
+      const list = d?.data || d?.results || d?.predictions || (Array.isArray(d) ? d : []);
       setPredictions(list);
-    }
-    if (topRaw) {
-      setTopDistricts(topRaw?.data || topRaw?.districts || (Array.isArray(topRaw) ? topRaw : []));
-    }
-    if (statsRaw) {
-      setDistrictStats(statsRaw?.data || (Array.isArray(statsRaw) ? statsRaw : []));
+      if (list[0]) console.log("prediction record sample:", list[0]);
+    } else {
+      console.error("all-results:", predsRes.reason?.message);
     }
     setLoading(false);
   };
@@ -94,66 +79,55 @@ export default function PredictionsPage() {
   const handleDeleteAll = async () => {
     setIsDeleting(true);
     try {
-      await deleteAllPredictions();
+      const raw = localStorage.getItem("token");
+      const token = raw && raw !== "undefined" ? raw : null;
+      const res = await fetch(`${AGRI_API}/predict/delete-all-results`, {
+        method: "DELETE",
+        headers: {
+          Accept: "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+      });
+      if (!res.ok) throw new Error("Failed");
       toast.success("All prediction records cleared");
       setPredictions([]);
-      setTopDistricts([]);
       setDistrictStats([]);
+      setTopDistricts([]);
       setShowDeleteAll(false);
-    } catch (err) {
-      toast.error(err.message || "Failed to delete records");
+    } catch {
+      toast.error("Failed to delete records");
     } finally {
       setIsDeleting(false);
     }
   };
 
-  const getDisease = (p) => getField(p, "disease", "result", "prediction", "label", "Disease", "Prediction", "Label") || "";
-  const getConfidence = (p) => getField(p, "confidence", "Confidence", "probability", "score", "accuracy");
-  const getUser = (p) => p.userId || p.user || p.User || null;
-  const getFarmerName = (p) => {
-    const u = getUser(p);
-    if (!u) return "";
-    return getField(u, "FirstName", "firstName", "name", "Name", "fullName") + " " +
-           (getField(u, "LastName", "lastName", "surname") || "");
-  };
-  const getDistrict = (p) => {
-    const u = getUser(p);
-    return getField(p, "district", "District") ||
-           getField(u, "location.district", "District", "district") || "";
-  };
+  const totalCases = districtStats.reduce((s, d) => s + (d.totalCases || 0), 0);
+  const maxCases = Math.max(...districtStats.map((d) => d.totalCases || 0), 1);
 
-  const filtered = predictions.filter((p) => {
+  const filteredPreds = predictions.filter((p) => {
     const q = search.toLowerCase();
-    return formatDisease(getDisease(p)).toLowerCase().includes(q) ||
-           getDistrict(p).toLowerCase().includes(q) ||
-           getFarmerName(p).toLowerCase().includes(q);
+    const disease = formatDisease(p.disease || p.result || p.prediction || "").toLowerCase();
+    const district = (p.district || p.userId?.location?.district || "").toLowerCase();
+    const farmer = `${p.userId?.FirstName || p.userId?.firstName || ""} ${p.userId?.LastName || p.userId?.lastName || ""}`.toLowerCase();
+    return disease.includes(q) || district.includes(q) || farmer.includes(q);
   });
-
-  const diseaseCount = predictions.reduce((acc, p) => {
-    const d = formatDisease(getDisease(p)) || "Unknown";
-    acc[d] = (acc[d] || 0) + 1;
-    return acc;
-  }, {});
-
-  const topDisease = Object.entries(diseaseCount).sort((a, b) => b[1] - a[1])[0]?.[0] || "—";
 
   return (
     <div className="space-y-6">
-      {/* Stats */}
+
+      {/* Summary Stats */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         {[
-          { label: "Total Scans", value: loading ? "..." : predictions.length, color: "bg-primary", icon: TbLeaf },
-          { label: "Most Common Disease", value: loading ? "..." : (topDisease || "—"), color: "bg-orange-500", icon: TbAlertCircle },
-          { label: "Districts Affected", value: loading ? "..." : districtStats.length, color: "bg-blue-500", icon: TbMapPin },
+          { label: "Total Late Blight Cases", value: loading ? "..." : totalCases, icon: TbLeaf, color: "bg-red-500" },
+          { label: "Districts Affected",       value: loading ? "..." : districtStats.length, icon: TbMapPin, color: "bg-primary" },
+          { label: "Total Scan Records",       value: loading ? "..." : predictions.length, icon: TbChartBar, color: "bg-blue-500" },
         ].map((s, i) => (
           <motion.div key={i} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.08 }}>
             <Card className="border-none shadow-sm bg-white">
               <CardHeader className="flex flex-row items-center gap-4 pb-2">
-                <div className={`p-3 rounded-full text-white ${s.color}`}>
-                  <s.icon size={20} />
-                </div>
+                <div className={`p-3 rounded-full text-white ${s.color}`}><s.icon size={20} /></div>
                 <div>
-                  <div className="text-xl font-bold text-primary truncate max-w-40">{s.value}</div>
+                  <div className="text-2xl font-bold text-primary">{s.value}</div>
                   <CardTitle className="text-sm text-muted-foreground">{s.label}</CardTitle>
                 </div>
               </CardHeader>
@@ -162,67 +136,79 @@ export default function PredictionsPage() {
         ))}
       </div>
 
-      {/* Top Districts */}
-      {topDistricts.length > 0 && (
-        <Card className="border-none shadow-sm bg-white">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-base"><TbChartBar size={18} /> Top Affected Districts</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              {topDistricts.slice(0, 5).map((d, i) => {
-                const label = d.district || d._id || d.name || d.District || "Unknown";
-                const count = d.count || d.total || d.cases || d.Total || 0;
-                const max = topDistricts[0]?.count || topDistricts[0]?.total || topDistricts[0]?.cases || 1;
-                return (
-                  <div key={i} className="flex items-center gap-3">
-                    <span className="text-sm font-semibold text-primary w-28 truncate">{label}</span>
-                    <div className="flex-1 bg-muted rounded-full h-2">
-                      <div className="bg-primary h-2 rounded-full" style={{ width: `${Math.min(100, (count / max) * 100)}%` }} />
-                    </div>
-                    <span className="text-sm text-muted-foreground w-8 text-right">{count}</span>
-                  </div>
-                );
-              })}
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* All Results Table */}
+      {/* District Stats Table */}
       <Card className="border-none shadow-sm bg-white">
-        <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-          <CardTitle className="text-base">All Scan Results</CardTitle>
-          <div className="flex gap-3">
-            <div className="relative">
-              <TbSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={15} />
-              <input
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                placeholder="Search disease, district, farmer..."
-                className="pl-8 pr-3 py-2 text-sm border border-border rounded-lg bg-muted/30 focus:outline-none focus:ring-2 focus:ring-accent/40 w-56"
-              />
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-base">
+            <TbBuildingCommunity size={18} /> Late Blight – District Level Stats
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {loading ? (
+            <div className="flex justify-center py-10"><TbLoader2 className="animate-spin text-primary" size={26} /></div>
+          ) : districtStats.length === 0 ? (
+            <p className="text-sm text-muted-foreground text-center py-8">No district data available</p>
+          ) : (
+            <div className="space-y-4">
+              {districtStats.map((d, i) => (
+                <motion.div
+                  key={i}
+                  initial={{ opacity: 0, x: -10 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: i * 0.06 }}
+                  className="p-4 rounded-xl border border-border hover:bg-muted/20 transition-colors"
+                >
+                  <div className="flex items-center justify-between mb-2">
+                    <div>
+                      <span className="font-semibold text-primary">{d.district}</span>
+                      <span className="text-xs text-muted-foreground ml-2">({d.province})</span>
+                    </div>
+                    <span className="text-sm font-bold text-red-500">{d.totalCases} case{d.totalCases !== 1 ? "s" : ""}</span>
+                  </div>
+                  <div className="w-full bg-muted rounded-full h-2 mb-2">
+                    <div
+                      className="bg-red-500 h-2 rounded-full transition-all duration-500"
+                      style={{ width: `${Math.min(100, (d.totalCases / maxCases) * 100)}%` }}
+                    />
+                  </div>
+                  {d.sectors?.length > 0 && (
+                    <div className="flex flex-wrap gap-1 mt-1">
+                      {d.sectors.map((s, j) => (
+                        <span key={j} className="px-2 py-0.5 bg-primary/10 text-primary text-xs rounded-full font-medium">{s}</span>
+                      ))}
+                    </div>
+                  )}
+                </motion.div>
+              ))}
             </div>
-            {predictions.length > 0 && (
+          )}
+        </CardContent>
+      </Card>
+
+      {/* All Scan Results */}
+      {predictions.length > 0 && (
+        <Card className="border-none shadow-sm bg-white">
+          <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <CardTitle className="text-base">All Scan Results</CardTitle>
+            <div className="flex gap-3">
+              <div className="relative">
+                <TbSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={15} />
+                <input
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  placeholder="Search disease, district, farmer..."
+                  className="pl-8 pr-3 py-2 text-sm border border-border rounded-lg bg-muted/30 focus:outline-none focus:ring-2 focus:ring-accent/40 w-56"
+                />
+              </div>
               <button
                 onClick={() => setShowDeleteAll(true)}
                 className="flex items-center gap-1.5 px-3 py-2 text-sm font-semibold text-red-500 border border-red-200 rounded-lg hover:bg-red-50 transition-colors"
               >
                 <TbTrash size={15} /> Clear All
               </button>
-            )}
-          </div>
-        </CardHeader>
-
-        <CardContent>
-          {loading ? (
-            <div className="flex justify-center py-16"><TbLoader2 className="animate-spin text-primary" size={28} /></div>
-          ) : filtered.length === 0 ? (
-            <div className="flex flex-col items-center py-16 text-muted-foreground gap-2">
-              <TbLeaf size={40} className="opacity-30" />
-              <p className="text-sm">No prediction records found</p>
             </div>
-          ) : (
+          </CardHeader>
+          <CardContent>
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
@@ -236,46 +222,47 @@ export default function PredictionsPage() {
                 </thead>
                 <tbody className="divide-y divide-border">
                   <AnimatePresence>
-                    {filtered.map((p, i) => (
-                      <motion.tr
-                        key={p._id || i}
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        transition={{ delay: i * 0.03 }}
-                        className="hover:bg-muted/20"
-                      >
-                        <td className="py-3 pr-4">
-                          <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${diseaseBadgeColor(getDisease(p))}`}>
-                            {formatDisease(getDisease(p)) || "Unknown"}
-                          </span>
-                        </td>
-                        <td className="py-3 pr-4 text-muted-foreground">
-                          {getConfidence(p) != null ? `${Number(getConfidence(p)).toFixed(1)}%` : "—"}
-                        </td>
-                        <td className="py-3 pr-4 font-medium text-primary">
-                          {getFarmerName(p).trim() || "—"}
-                        </td>
-                        <td className="py-3 pr-4 text-muted-foreground">
-                          <span className="flex items-center gap-1">
-                            <TbMapPin size={13} />
-                            {getDistrict(p) || "—"}
-                          </span>
-                        </td>
-                        <td className="py-3 text-muted-foreground whitespace-nowrap">
-                          <span className="flex items-center gap-1">
-                            <TbCalendar size={13} />
-                            {p.createdAt ? new Date(p.createdAt).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" }) : "—"}
-                          </span>
-                        </td>
-                      </motion.tr>
-                    ))}
+                    {filteredPreds.map((p, i) => {
+                      const disease = p.disease || p.result || p.prediction || p.label || "";
+                      const confidence = p.confidence || p.Confidence || p.probability || p.score;
+                      const farmer = `${p.userId?.FirstName || p.userId?.firstName || ""}  ${p.userId?.LastName || p.userId?.lastName || ""}`.trim();
+                      const district = p.district || p.District || p.userId?.location?.district || "";
+                      return (
+                        <motion.tr
+                          key={p._id || i}
+                          initial={{ opacity: 0 }}
+                          animate={{ opacity: 1 }}
+                          transition={{ delay: i * 0.02 }}
+                          className="hover:bg-muted/20"
+                        >
+                          <td className="py-3 pr-4">
+                            <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${diseaseBadgeColor(disease)}`}>
+                              {formatDisease(disease) || "Unknown"}
+                            </span>
+                          </td>
+                          <td className="py-3 pr-4 text-muted-foreground">
+                            {confidence != null ? `${Number(confidence).toFixed(1)}%` : "—"}
+                          </td>
+                          <td className="py-3 pr-4 font-medium text-primary">{farmer || "—"}</td>
+                          <td className="py-3 pr-4 text-muted-foreground">
+                            <span className="flex items-center gap-1"><TbMapPin size={13} />{district || "—"}</span>
+                          </td>
+                          <td className="py-3 text-muted-foreground whitespace-nowrap">
+                            <span className="flex items-center gap-1">
+                              <TbCalendar size={13} />
+                              {p.createdAt ? new Date(p.createdAt).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" }) : "—"}
+                            </span>
+                          </td>
+                        </motion.tr>
+                      );
+                    })}
                   </AnimatePresence>
                 </tbody>
               </table>
             </div>
-          )}
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Delete All Modal */}
       <AnimatePresence>
@@ -295,11 +282,13 @@ export default function PredictionsPage() {
                 This will permanently delete all {predictions.length} prediction records. This cannot be undone.
               </p>
               <div className="flex gap-3">
-                <button onClick={() => setShowDeleteAll(false)} disabled={isDeleting} className="flex-1 py-2.5 border border-border rounded-xl font-semibold text-muted-foreground hover:bg-muted/40 transition-colors disabled:opacity-50">
+                <button onClick={() => setShowDeleteAll(false)} disabled={isDeleting}
+                  className="flex-1 py-2.5 border border-border rounded-xl font-semibold text-muted-foreground hover:bg-muted/40 transition-colors disabled:opacity-50">
                   Cancel
                 </button>
-                <button onClick={handleDeleteAll} disabled={isDeleting} className="flex-1 py-2.5 bg-red-500 text-white rounded-xl font-semibold hover:bg-red-600 transition-colors disabled:opacity-50 flex items-center justify-center gap-2">
-                  {isDeleting ? <><TbLoader2 className="animate-spin" size={16} /> Deleting...</> : <><TbTrash size={16} /> Delete All</>}
+                <button onClick={handleDeleteAll} disabled={isDeleting}
+                  className="flex-1 py-2.5 bg-red-500 text-white rounded-xl font-semibold hover:bg-red-600 transition-colors disabled:opacity-50 flex items-center justify-center gap-2">
+                  {isDeleting ? <><TbLoader2 className="animate-spin" size={16} />Deleting...</> : <><TbTrash size={16} />Delete All</>}
                 </button>
               </div>
             </motion.div>
