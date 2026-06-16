@@ -44,6 +44,9 @@ export default function PredictionsPage() {
   const [showDeleteAll, setShowDeleteAll] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
 
+  // Top districts
+  const [mostAffected, setMostAffected] = useState(null);
+
   // District breakdown drill-down
   const [breakdown, setBreakdown] = useState(null);
   const [breakdownDistrict, setBreakdownDistrict] = useState("");
@@ -66,7 +69,8 @@ export default function PredictionsPage() {
     }
     if (topRes.status === "fulfilled") {
       const d = topRes.value;
-      setTopDistricts(d?.data || d?.districts || (Array.isArray(d) ? d : []));
+      setMostAffected(d?.mostAffected || null);
+      setTopDistricts(d?.data || []);
     } else {
       console.error("top-districts:", topRes.reason?.message);
     }
@@ -155,6 +159,75 @@ export default function PredictionsPage() {
           </motion.div>
         ))}
       </div>
+
+      {/* Most Affected District Banner */}
+      {!loading && mostAffected && (
+        <motion.div
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="bg-linear-to-r from-red-500 to-red-600 rounded-2xl p-5 text-white flex items-center justify-between"
+        >
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center shrink-0">
+              <TbAlertCircle size={24} className="text-white" />
+            </div>
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-widest text-white/70 mb-0.5">Most Affected District</p>
+              <h3 className="text-2xl font-bold">{mostAffected.district}</h3>
+              <p className="text-sm text-white/80">{mostAffected.province} Province</p>
+            </div>
+          </div>
+          <div className="text-right shrink-0">
+            <div className="text-4xl font-bold">{mostAffected.totalCases}</div>
+            <div className="text-xs text-white/70 font-medium uppercase tracking-wide">Late Blight Cases</div>
+          </div>
+        </motion.div>
+      )}
+
+      {/* Top Districts Ranking */}
+      {!loading && topDistricts.length > 0 && (
+        <Card className="border-none shadow-sm bg-white">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-base">
+              <TbChartBar size={18} /> Top Affected Districts
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              {topDistricts.map((d, i) => {
+                const max = topDistricts[0]?.totalCases || 1;
+                return (
+                  <motion.div
+                    key={i}
+                    initial={{ opacity: 0, x: -8 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: i * 0.06 }}
+                    className="flex items-center gap-3 cursor-pointer group"
+                    onClick={() => openBreakdown(d.district)}
+                  >
+                    <span className="text-xs font-bold text-muted-foreground w-5 text-center">#{i + 1}</span>
+                    <div className="flex-1">
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-sm font-semibold text-primary group-hover:underline underline-offset-2">
+                          {d.district}
+                          <span className="text-xs font-normal text-muted-foreground ml-1.5">({d.province})</span>
+                        </span>
+                        <span className="text-xs font-bold text-red-500">{d.totalCases} cases</span>
+                      </div>
+                      <div className="w-full bg-muted rounded-full h-2">
+                        <div
+                          className="bg-red-500 h-2 rounded-full transition-all duration-500"
+                          style={{ width: `${Math.min(100, (d.totalCases / max) * 100)}%` }}
+                        />
+                      </div>
+                    </div>
+                  </motion.div>
+                );
+              })}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* District Stats Table */}
       <Card className="border-none shadow-sm bg-white">
