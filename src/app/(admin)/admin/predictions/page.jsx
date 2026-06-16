@@ -10,13 +10,22 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
 import { getAllPredictions, deleteAllPredictions, getTopDistricts, getDistrictStats } from "@/lib/api";
 import { toast } from "sonner";
 
+const getField = (p, ...keys) => {
+  for (const k of keys) {
+    const val = k.split(".").reduce((o, part) => o?.[part], p);
+    if (val !== undefined && val !== null && val !== "") return val;
+  }
+  return null;
+};
+
 const formatDisease = (name = "") =>
-  name.replace(/^Potato___/, "").replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+  name.replace(/^Potato___/, "").replace(/___/g, " - ").replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
 
 const diseaseBadgeColor = (name = "") => {
-  if (name.toLowerCase().includes("healthy")) return "bg-green-100 text-green-700";
-  if (name.toLowerCase().includes("late")) return "bg-red-100 text-red-700";
-  if (name.toLowerCase().includes("early")) return "bg-orange-100 text-orange-700";
+  const n = name.toLowerCase();
+  if (n.includes("healthy")) return "bg-green-100 text-green-700";
+  if (n.includes("late")) return "bg-red-100 text-red-700";
+  if (n.includes("early")) return "bg-orange-100 text-orange-700";
   return "bg-blue-100 text-blue-700";
 };
 
@@ -42,7 +51,11 @@ export default function PredictionsPage() {
     ]);
 
     if (predsResult.status === "fulfilled") {
-      setPredictions(predsResult.value?.data || predsResult.value?.results || []);
+      const raw = predsResult.value;
+      console.log("RAW predictions response:", JSON.stringify(raw, null, 2));
+      const list = raw?.data || raw?.results || raw?.predictions || (Array.isArray(raw) ? raw : []);
+      if (list.length > 0) console.log("First prediction record keys:", Object.keys(list[0]));
+      setPredictions(list);
     }
     if (topResult.status === "fulfilled") {
       const d = topResult.value;
@@ -70,16 +83,30 @@ export default function PredictionsPage() {
     }
   };
 
+  const getDisease = (p) => getField(p, "disease", "result", "prediction", "label", "Disease", "Prediction", "Label") || "";
+  const getConfidence = (p) => getField(p, "confidence", "Confidence", "probability", "score", "accuracy");
+  const getUser = (p) => p.userId || p.user || p.User || null;
+  const getFarmerName = (p) => {
+    const u = getUser(p);
+    if (!u) return "";
+    return getField(u, "FirstName", "firstName", "name", "Name", "fullName") + " " +
+           (getField(u, "LastName", "lastName", "surname") || "");
+  };
+  const getDistrict = (p) => {
+    const u = getUser(p);
+    return getField(p, "district", "District") ||
+           getField(u, "location.district", "District", "district") || "";
+  };
+
   const filtered = predictions.filter((p) => {
     const q = search.toLowerCase();
-    const disease = formatDisease(p.disease || p.result || "").toLowerCase();
-    const district = (p.userId?.location?.district || p.district || "").toLowerCase();
-    const name = `${p.userId?.FirstName || ""} ${p.userId?.LastName || ""}`.toLowerCase();
-    return disease.includes(q) || district.includes(q) || name.includes(q);
+    return formatDisease(getDisease(p)).toLowerCase().includes(q) ||
+           getDistrict(p).toLowerCase().includes(q) ||
+           getFarmerName(p).toLowerCase().includes(q);
   });
 
   const diseaseCount = predictions.reduce((acc, p) => {
-    const d = formatDisease(p.disease || p.result || "Unknown");
+    const d = formatDisease(getDisease(p)) || "Unknown";
     acc[d] = (acc[d] || 0) + 1;
     return acc;
   }, {});
@@ -92,7 +119,7 @@ export default function PredictionsPage() {
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         {[
           { label: "Total Scans", value: loading ? "..." : predictions.length, color: "bg-primary", icon: TbLeaf },
-          { label: "Most Common Disease", value: loading ? "..." : topDisease, color: "bg-orange-500", icon: TbAlertCircle },
+          { label: "Most Common Disease", value: loading ? "..." : (topDisease || "—"), color: "bg-orange-500", icon: TbAlertCircle },
           { label: "Districts Affected", value: loading ? "..." : districtStats.length, color: "bg-blue-500", icon: TbMapPin },
         ].map((s, i) => (
           <motion.div key={i} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.08 }}>
@@ -119,18 +146,20 @@ export default function PredictionsPage() {
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
-              {topDistricts.slice(0, 5).map((d, i) => (
-                <div key={i} className="flex items-center gap-3">
-                  <span className="text-sm font-semibold text-primary w-28 truncate">{d.district || d._id}</span>
-                  <div className="flex-1 bg-muted rounded-full h-2">
-                    <div
-                      className="bg-primary h-2 rounded-full"
-                      style={{ width: `${Math.min(100, ((d.count || d.total || 1) / (topDistricts[0]?.count || topDistricts[0]?.total || 1)) * 100)}%` }}
-                    />
+              {topDistricts.slice(0, 5).map((d, i) => {
+                const label = d.district || d._id || d.name || d.District || "Unknown";
+                const count = d.count || d.total || d.cases || d.Total || 0;
+                const max = topDistricts[0]?.count || topDistricts[0]?.total || topDistricts[0]?.cases || 1;
+                return (
+                  <div key={i} className="flex items-center gap-3">
+                    <span className="text-sm font-semibold text-primary w-28 truncate">{label}</span>
+                    <div className="flex-1 bg-muted rounded-full h-2">
+                      <div className="bg-primary h-2 rounded-full" style={{ width: `${Math.min(100, (count / max) * 100)}%` }} />
+                    </div>
+                    <span className="text-sm text-muted-foreground w-8 text-right">{count}</span>
                   </div>
-                  <span className="text-sm text-muted-foreground w-8 text-right">{d.count || d.total}</span>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </CardContent>
         </Card>
@@ -192,20 +221,20 @@ export default function PredictionsPage() {
                         className="hover:bg-muted/20"
                       >
                         <td className="py-3 pr-4">
-                          <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${diseaseBadgeColor(p.disease || p.result)}`}>
-                            {formatDisease(p.disease || p.result || "Unknown")}
+                          <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${diseaseBadgeColor(getDisease(p))}`}>
+                            {formatDisease(getDisease(p)) || "Unknown"}
                           </span>
                         </td>
                         <td className="py-3 pr-4 text-muted-foreground">
-                          {p.confidence ? `${Number(p.confidence).toFixed(1)}%` : "—"}
+                          {getConfidence(p) != null ? `${Number(getConfidence(p)).toFixed(1)}%` : "—"}
                         </td>
                         <td className="py-3 pr-4 font-medium text-primary">
-                          {p.userId ? `${p.userId.FirstName || ""} ${p.userId.LastName || ""}`.trim() : "—"}
+                          {getFarmerName(p).trim() || "—"}
                         </td>
                         <td className="py-3 pr-4 text-muted-foreground">
                           <span className="flex items-center gap-1">
                             <TbMapPin size={13} />
-                            {p.userId?.location?.district || p.district || "—"}
+                            {getDistrict(p) || "—"}
                           </span>
                         </td>
                         <td className="py-3 text-muted-foreground whitespace-nowrap">
