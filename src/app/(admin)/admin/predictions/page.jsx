@@ -140,42 +140,73 @@ export default function PredictionsPage() {
       </div>
 
       {/* ── Most Affected Banner ── */}
-      {!loading && mostAffected && (
-        <motion.div
-          initial={{ opacity: 0, y: 8 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="bg-linear-to-r from-red-500 to-rose-600 rounded-2xl p-6 text-white flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4"
-        >
+      <motion.div
+        initial={{ opacity: 0, y: 8 }}
+        animate={{ opacity: 1, y: 0 }}
+        className={`rounded-2xl p-6 text-white flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 ${
+          mostAffected ? "bg-linear-to-r from-red-500 to-rose-600" : "bg-linear-to-r from-slate-500 to-slate-600"
+        }`}
+      >
+        {loading ? (
+          <div className="flex items-center gap-3 text-white/60">
+            <TbLoader2 className="animate-spin" size={20} />
+            <span className="text-sm">Loading most affected district...</span>
+          </div>
+        ) : mostAffected ? (
+          <>
+            <div className="flex items-center gap-4">
+              <div className="w-14 h-14 bg-white/20 rounded-2xl flex items-center justify-center shrink-0">
+                <TbAlertCircle size={28} />
+              </div>
+              <div>
+                <p className="text-xs font-bold uppercase tracking-[0.15em] text-white/60 mb-1">Most Affected District</p>
+                <h3 className="text-3xl font-extrabold leading-none">{mostAffected.district}</h3>
+                <p className="text-sm text-white/75 mt-1">{mostAffected.province} Province</p>
+              </div>
+            </div>
+            <div className="sm:text-right pl-18 sm:pl-0">
+              <div className="text-5xl font-extrabold">{mostAffected.totalCases}</div>
+              <div className="text-xs text-white/60 font-semibold uppercase tracking-widest mt-1">Late Blight Cases</div>
+            </div>
+          </>
+        ) : (
           <div className="flex items-center gap-4">
             <div className="w-14 h-14 bg-white/20 rounded-2xl flex items-center justify-center shrink-0">
-              <TbAlertCircle size={28} />
+              <TbShieldCheck size={28} />
             </div>
             <div>
               <p className="text-xs font-bold uppercase tracking-[0.15em] text-white/60 mb-1">Most Affected District</p>
-              <h3 className="text-3xl font-extrabold leading-none">{mostAffected.district}</h3>
-              <p className="text-sm text-white/75 mt-1">{mostAffected.province} Province</p>
+              <h3 className="text-xl font-bold leading-none">No Late Blight Detected</h3>
+              <p className="text-sm text-white/60 mt-1">All current scan results show healthy plants</p>
             </div>
           </div>
-          <div className="sm:text-right pl-18 sm:pl-0">
-            <div className="text-5xl font-extrabold">{mostAffected.totalCases}</div>
-            <div className="text-xs text-white/60 font-semibold uppercase tracking-widest mt-1">Late Blight Cases</div>
-          </div>
-        </motion.div>
-      )}
+        )}
+      </motion.div>
 
       {/* ── Top Districts + District Stats side-by-side on lg ── */}
-      {!loading && (topDistricts.length > 0 || districtStats.length > 0) && (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
 
-          {/* Top Districts Ranking */}
-          {topDistricts.length > 0 && (
-            <Card className="border-none shadow-sm bg-white">
-              <CardHeader className="pb-3">
-                <CardTitle className="flex items-center gap-2 text-sm font-bold">
-                  <TbChartBar size={17} className="text-primary" /> Top Affected Districts
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
+        {/* Top Districts Ranking */}
+        <Card className="border-none shadow-sm bg-white">
+          <CardHeader className="pb-3">
+            <CardTitle className="flex items-center gap-2 text-sm font-bold">
+              <TbChartBar size={17} className="text-primary" /> Top Affected Districts
+            </CardTitle>
+            <p className="text-xs text-muted-foreground mt-0.5">Ranked by Late Blight case count — click to view sector breakdown</p>
+          </CardHeader>
+          <CardContent>
+            {loading ? (
+              <div className="flex justify-center py-10">
+                <TbLoader2 className="animate-spin text-primary" size={22} />
+              </div>
+            ) : topDistricts.length === 0 ? (
+              <div className="flex flex-col items-center py-10 gap-2 text-muted-foreground">
+                <TbChartBar size={36} className="opacity-20" />
+                <p className="text-sm font-medium">No Late Blight cases recorded yet</p>
+                <p className="text-xs">District rankings will appear once Late Blight is detected</p>
+              </div>
+            ) : (
+              <div className="space-y-4">
                 {topDistricts.map((d, i) => (
                   <motion.div
                     key={i}
@@ -210,19 +241,32 @@ export default function PredictionsPage() {
                     </div>
                   </motion.div>
                 ))}
-              </CardContent>
-            </Card>
-          )}
+              </div>
+            )}
+          </CardContent>
+        </Card>
 
-          {/* District Level Stats */}
-          {districtStats.length > 0 && (
-            <Card className="border-none shadow-sm bg-white">
-              <CardHeader className="pb-3">
-                <CardTitle className="flex items-center gap-2 text-sm font-bold">
-                  <TbMapPin size={17} className="text-primary" /> District-Level Stats
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
+        {/* District Level Stats */}
+        <Card className="border-none shadow-sm bg-white">
+          <CardHeader className="pb-3">
+            <CardTitle className="flex items-center gap-2 text-sm font-bold">
+              <TbMapPin size={17} className="text-primary" /> District-Level Stats
+            </CardTitle>
+            <p className="text-xs text-muted-foreground mt-0.5">Late Blight cases per district with sector breakdown</p>
+          </CardHeader>
+          <CardContent>
+            {loading ? (
+              <div className="flex justify-center py-10">
+                <TbLoader2 className="animate-spin text-primary" size={22} />
+              </div>
+            ) : districtStats.length === 0 ? (
+              <div className="flex flex-col items-center py-10 gap-2 text-muted-foreground">
+                <TbMapPin size={36} className="opacity-20" />
+                <p className="text-sm font-medium">No district data available</p>
+                <p className="text-xs">Stats appear when Late Blight cases are confirmed</p>
+              </div>
+            ) : (
+              <div className="space-y-3">
                 {districtStats.map((d, i) => (
                   <motion.div
                     key={i}
@@ -259,11 +303,11 @@ export default function PredictionsPage() {
                     )}
                   </motion.div>
                 ))}
-              </CardContent>
-            </Card>
-          )}
-        </div>
-      )}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
 
       {/* ── All Scan Results Table ── */}
       <Card className="border-none shadow-sm bg-white">
