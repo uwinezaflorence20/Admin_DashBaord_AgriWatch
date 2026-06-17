@@ -32,7 +32,6 @@ export const removeStorageItem = (key) => {
  * Core API caller with automatic token refresh mechanism
  */
 export const apiCall = async (endpoint, options = {}) => {
-  console.log("Current BASE_URL:", BASE_URL);
   let token = getStorageItem('accessToken');
   
   const headers = {
@@ -121,23 +120,6 @@ export const logoutUser = () => {
 /**
  * Authentication Endpoints
  */
-export const login = async (credentials) => {
-  const data = await apiCall('/auth/login', {
-    method: 'POST',
-    body: credentials,
-  });
-  
-  if (data?.accessToken) {
-    setStorageItem('accessToken', data.accessToken);
-    setStorageItem('refreshToken', data.refreshToken);
-    if (data.user) {
-      setStorageItem('email', data.user.email);
-      setStorageItem('name', data.user.name || data.user.username || '');
-    }
-  }
-  return data;
-};
-
 export const logout = async () => {
   try {
      await apiCall('/auth/logout', { method: 'POST' });
@@ -148,61 +130,10 @@ export const logout = async () => {
   }
 };
 
-export const forgotPassword = async (email) => {
-  return await apiCall('/auth/forgot-password', {
-    method: 'POST',
-    body: { email },
-  });
-};
-
-export const resetPassword = async (token, password) => {
-  return await apiCall(`/auth/reset-password/${token}`, {
-    method: 'POST',
-    body: { password },
-  });
-};
-
-export const getMyProfile = async () => {
-  return await apiCall('/auth/me', { method: 'GET' });
-};
-
-export const updateProfile = async (profileData) => {
-  return await apiCall('/auth/update-profile', {
-    method: 'PUT',
-    body: profileData,
-  });
-};
-
-export const updatePassword = async (passwordData) => {
-  return await apiCall('/auth/update-password', {
-    method: 'PUT',
-    body: passwordData,
-  });
-};
-
-/**
- * Activities Endpoints
- */
-export const getActivities = async () => apiCall('/activities', { method: 'GET' });
-export const getActivityById = async (id) => apiCall(`/activities/${id}`, { method: 'GET' });
-export const createActivity = async (formData) => apiCall('/activities', { method: 'POST', body: formData });
-export const updateActivity = async (id, formData) => apiCall(`/activities/${id}`, { method: 'PUT', body: formData });
-export const deleteActivity = async (id) => apiCall(`/activities/${id}`, { method: 'DELETE' });
-
-/**
- * Articles Endpoints
- */
-export const getArticles = async () => apiCall('/articles', { method: 'GET' });
-export const getArticleById = async (id) => apiCall(`/articles/${id}`, { method: 'GET' });
-export const createArticle = async (formData) => apiCall('/articles', { method: 'POST', body: formData });
-export const updateArticle = async (id, formData) => apiCall(`/articles/${id}`, { method: 'PUT', body: formData });
-export const deleteArticle = async (id) => apiCall(`/articles/${id}`, { method: 'DELETE' });
-
 /**
  * News Endpoints
  */
 export const getAllNews = async () => apiCall('/news', { method: 'GET' });
-export const getNewsById = async (id) => apiCall(`/news/${id}`, { method: 'GET' });
 export const createNews = async (formData) => apiCall('/news', { method: 'POST', body: formData });
 export const updateNews = async (id, formData) => apiCall(`/news/${id}`, { method: 'PUT', body: formData });
 export const deleteNews = async (id) => apiCall(`/news/${id}`, { method: 'DELETE' });
@@ -211,7 +142,6 @@ export const deleteNews = async (id) => apiCall(`/news/${id}`, { method: 'DELETE
  * Team Endpoints
  */
 export const getTeamMembers = async () => apiCall('/team', { method: 'GET' });
-export const getTeamMemberById = async (id) => apiCall(`/team/${id}`, { method: 'GET' });
 export const createTeamMember = async (formData) => apiCall('/team', { method: 'POST', body: formData });
 export const updateTeamMember = async (id, formData) => apiCall(`/team/${id}`, { method: 'PUT', body: formData });
 export const deleteTeamMember = async (id) => apiCall(`/team/${id}`, { method: 'DELETE' });
@@ -220,24 +150,11 @@ export const deleteTeamMember = async (id) => apiCall(`/team/${id}`, { method: '
  * Recent Activities Endpoints
  */
 export const getRecentActivities = async () => apiCall('/recent', { method: 'GET' });
-export const deleteRecentActivity = async (id) => apiCall(`/recent/${id}`, { method: 'DELETE' });
-
 
 /**
  * Contact Endpoints
  */
-export const getContacts = async () => apiCall('/contact', { method: 'GET' });
-export const submitContact = async (contactData) => apiCall('/contact', { method: 'POST', body: contactData });
-export const deleteContact = async (id) => apiCall(`/contact/${id}`, { method: 'DELETE' });
 export const contactDevelopers = async (contactData) => apiCall('/contact/contact-developers', { method: 'POST', body: contactData });
-/**
- * Job Postings Endpoints
- */
-export const getJobPostings = async () => apiCall('/job-postings', { method: 'GET' });
-export const getJobPostingById = async (id) => apiCall(`/job-postings/${id}`, { method: 'GET' });
-export const createJobPosting = async (data) => apiCall('/job-postings', { method: 'POST', body: data });
-export const updateJobPosting = async (id, data) => apiCall(`/job-postings/${id}`, { method: 'PUT', body: data });
-export const deleteJobPosting = async (id) => apiCall(`/job-postings/${id}`, { method: 'DELETE' });
 
 /**
  * Model Performance Endpoints
@@ -323,12 +240,3 @@ export const updateUserInfo = (data) =>
 
 // Contacts
 export const getAgriContacts = () => agriCall("/contact");
-
-// Predictions — admin
-export const getAllPredictions = () => agriCall("/predict/all-results");
-export const deleteAllPredictions = () =>
-  agriCall("/predict/delete-all-results", { method: "DELETE" });
-export const getDistrictStats = () => agriCall("/predict/district-stats");
-export const getTopDistricts = () => agriCall("/predict/top-districts");
-export const getDistrictBreakdown = (district) =>
-  agriCall(`/predict/district-breakdown/${encodeURIComponent(district)}`);

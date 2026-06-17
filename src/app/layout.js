@@ -1,6 +1,5 @@
 import "./globals.css";
 import { Inter } from "next/font/google";
-import I18nProvider from "@/components/layout/I18nProvider";
 
 import { Toaster } from "sonner";
 import JsonLd from "@/components/seo/JsonLd";
@@ -75,11 +74,9 @@ export default function RootLayout({ children }) {
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={inter.className} suppressHydrationWarning>
-        <I18nProvider>
-          <JsonLd />
-          {children}
-          <Toaster position="top-right" richColors />
-        </I18nProvider>
+        <JsonLd />
+        {children}
+        <Toaster position="top-right" richColors />
       </body>
     </html>
   );
