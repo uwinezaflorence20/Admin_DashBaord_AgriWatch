@@ -3,15 +3,18 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import {
-  TbUsers, TbChecklist, TbLoader2, TbBrain,
+  TbChecklist, TbLoader2, TbBrain,
   TbUser, TbMail, TbInbox, TbCalendar, TbPhone,
 } from "react-icons/tb";
+import {
+  ResponsiveContainer, AreaChart, Area, BarChart, Bar,
+  XAxis, YAxis, CartesianGrid, Tooltip,
+} from "recharts";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
 import { motion } from "framer-motion";
 
 import {
-  getTeamMembers,
   getRecentActivities,
   getModelMetrics,
   getAllUsers,
@@ -21,19 +24,38 @@ import {
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
+const MONTHS_BACK = 6;
+
+function groupByMonth(items, dateKey = "createdAt") {
+  const now = new Date();
+  const buckets = [];
+  for (let i = MONTHS_BACK - 1; i >= 0; i--) {
+    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    buckets.push({ key: `${d.getFullYear()}-${d.getMonth()}`, month: d.toLocaleDateString("en-GB", { month: "short" }), count: 0 });
+  }
+  items.forEach((item) => {
+    const date = new Date(item?.[dateKey]);
+    if (isNaN(date)) return;
+    const key = `${date.getFullYear()}-${date.getMonth()}`;
+    const bucket = buckets.find((b) => b.key === key);
+    if (bucket) bucket.count += 1;
+  });
+  return buckets.map(({ month, count }) => ({ month, count }));
+}
+
 export default function DashboardPage() {
   const router = useRouter();
 
   const [stats, setStats] = useState([
     { label: "Total Inquiries", value: "...", icon: TbChecklist, color: "bg-orange-500" },
     { label: "Total Users",     value: "...", icon: TbUser,      color: "bg-green-500"  },
-    { label: "Total Activities",value: "...", icon: TbUsers,     color: "bg-blue-500"   },
-    { label: "Team Members",    value: "...", icon: TbUsers,     color: "bg-accent"     },
   ]);
 
   const [modelAccuracy, setModelAccuracy] = useState(null);
   const [loading, setLoading] = useState(true);
   const [inquiries, setInquiries] = useState([]);
+  const [userSignups, setUserSignups] = useState([]);
+  const [userActivity, setUserActivity] = useState([]);
 
   const fetchModelAccuracy = async () => {
     try {
@@ -50,10 +72,9 @@ export default function DashboardPage() {
       const raw = localStorage.getItem("token");
       const token = raw && raw !== "undefined" ? raw : "";
 
-      const [activitiesResult, teamResult, contactsResult, usersResult] =
+      const [activitiesResult, contactsResult, usersResult] =
         await Promise.allSettled([
           getRecentActivities(),
-          getTeamMembers(),
           getAgriContacts(),
           getAllUsers(token),
         ]);
@@ -65,9 +86,6 @@ export default function DashboardPage() {
             : activitiesResult.value?.data || []
           : [];
 
-      const team =
-        teamResult.status === "fulfilled" ? teamResult.value?.data || [] : [];
-
       const contacts =
         contactsResult.status === "fulfilled"
           ? contactsResult.value?.data || contactsResult.value?.contacts ||
@@ -78,12 +96,12 @@ export default function DashboardPage() {
         usersResult.status === "fulfilled" ? usersResult.value?.data || [] : [];
 
       setInquiries(contacts);
+      setUserSignups(groupByMonth(usersData));
+      setUserActivity(groupByMonth(activitiesData));
 
       setStats([
-        { label: "Total Inquiries",  value: contacts.length.toString(),       icon: TbChecklist, color: "bg-orange-500" },
-        { label: "Total Users",      value: usersData.length.toString(),       icon: TbUser,      color: "bg-green-500"  },
-        { label: "Total Activities", value: activitiesData.length.toString(),  icon: TbUsers,     color: "bg-blue-500"   },
-        { label: "Team Members",     value: team.length.toString(),            icon: TbUsers,     color: "bg-accent"     },
+        { label: "Total Inquiries", value: contacts.length.toString(),  icon: TbChecklist, color: "bg-orange-500" },
+        { label: "Total Users",     value: usersData.length.toString(), icon: TbUser,      color: "bg-green-500"  },
       ]);
     } catch (error) {
       console.error(error);
@@ -150,6 +168,55 @@ export default function DashboardPage() {
             </Card>
           </motion.div>
         ))}
+      </div>
+
+      {/* User Growth & Engagement */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <Card className="border-none shadow-sm bg-white">
+          <CardHeader>
+            <CardTitle className="text-base">User Signups</CardTitle>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              How users have entered the system over the last 6 months
+            </p>
+          </CardHeader>
+          <CardContent>
+            <ResponsiveContainer width="100%" height={260}>
+              <AreaChart data={userSignups}>
+                <defs>
+                  <linearGradient id="signupGradient" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="#0F8410" stopOpacity={0.35} />
+                    <stop offset="100%" stopColor="#0F8410" stopOpacity={0} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                <XAxis dataKey="month" tick={{ fontSize: 12 }} />
+                <YAxis allowDecimals={false} tick={{ fontSize: 12 }} />
+                <Tooltip />
+                <Area type="monotone" dataKey="count" name="New users" stroke="#0F8410" fill="url(#signupGradient)" strokeWidth={2} />
+              </AreaChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
+
+        <Card className="border-none shadow-sm bg-white">
+          <CardHeader>
+            <CardTitle className="text-base">User Activity</CardTitle>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              How users are interacting with the platform over the last 6 months
+            </p>
+          </CardHeader>
+          <CardContent>
+            <ResponsiveContainer width="100%" height={260}>
+              <BarChart data={userActivity}>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                <XAxis dataKey="month" tick={{ fontSize: 12 }} />
+                <YAxis allowDecimals={false} tick={{ fontSize: 12 }} />
+                <Tooltip />
+                <Bar dataKey="count" name="Activities" fill="#3B82F6" radius={[4, 4, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
       </div>
 
       {/* Farmer Inquiries */}
