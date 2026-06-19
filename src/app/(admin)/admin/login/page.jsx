@@ -198,14 +198,7 @@ export default function AdminLoginPage() {
             </Button>
 
             {/* Forgot Password */}
-            <div className="flex justify-center">
-              <Link
-                href="/admin/forgot-password"
-                className="text-[#2F6B4F] font-bold underline underline-offset-4 text-sm"
-              >
-                Forgot Password?
-              </Link>
-            </div>
+            
           </form>
         </motion.div>
       </div>
